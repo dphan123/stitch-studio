@@ -1,0 +1,2043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Stitch Studio: multi-part crochet designer and 3D simulator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f3f1f8; --surface:#ffffff; --surface2:#eceaf5; --ink:#1f2243; --muted:#6a6c8c; --line:#dcd9ec;
+  --accent:#5a43e0; --accent-ink:#ffffff; --accent-soft:#e6e1fb;
+  --board:#b9dad3; --grid:rgba(31,34,67,.11);
+  --hook:#ff2d87; --inc:#1fbf75; --dec:#3478ff;
+  --display:'Bricolage Grotesque','Trebuchet MS',system-ui,sans-serif;
+  --body:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#13152a; --surface:#1c1f3a; --surface2:#262a4b; --ink:#ecebff; --muted:#9a9cc4;
+    --line:#343862; --accent:#8d7cff; --accent-ink:#13152a; --accent-soft:#2c2a5c;
+    --board:#1f3d3f; --grid:rgba(255,255,255,.08);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#13152a; --surface:#1c1f3a; --surface2:#262a4b; --ink:#ecebff; --muted:#9a9cc4;
+  --line:#343862; --accent:#8d7cff; --accent-ink:#13152a; --accent-soft:#2c2a5c;
+  --board:#1f3d3f; --grid:rgba(255,255,255,.08);
+  color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:8px}
+
+header.top{max-width:1320px;margin:0 auto;padding:22px 24px 10px;display:flex;align-items:center;gap:14px}
+.logo{width:44px;height:44px;flex:none}
+.top h1{font-family:var(--display);font-weight:800;font-size:28px;letter-spacing:-.02em;margin:0;line-height:1}
+.top p{margin:3px 0 0;color:var(--muted);font-size:14px}
+
+.app{max-width:1320px;margin:0 auto;padding:10px 24px 48px;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(370px,.9fr);gap:24px;align-items:start}
+
+/* stage */
+.stage{background:var(--surface);border:1px solid var(--line);border-radius:30px;overflow:hidden;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+.viewer{position:relative;height:clamp(320px,54vh,600px);background-color:var(--board);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:26px 26px;touch-action:none;cursor:grab}
+.viewer:active{cursor:grabbing}
+.viewer::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,transparent 55%,rgba(10,20,30,.16))}
+.viewer canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.badge{position:absolute;left:14px;top:14px;z-index:2;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:8px 14px;box-shadow:0 6px 18px -10px rgba(0,0,0,.35);max-width:60%}
+.badge b{font-family:var(--display);font-size:18px;font-weight:700;letter-spacing:-.01em;display:block;line-height:1.15}
+.badge span{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.vtools{position:absolute;right:14px;top:14px;z-index:2;display:flex;gap:8px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 13px;font-size:13px;font-weight:600;display:inline-flex;gap:7px;align-items:center}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.legend{position:absolute;left:14px;bottom:12px;z-index:2;display:flex;gap:12px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:12.5px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.hint{position:absolute;right:14px;bottom:14px;z-index:2;font-size:12px;color:var(--ink);opacity:.62}
+
+.playback{padding:16px 20px 20px;display:grid;gap:14px}
+.nowcard{background:var(--surface2);border-radius:18px;padding:12px 16px;min-height:78px}
+.nowcard .k{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.nowcard .ins{font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:-.01em;line-height:1.25;margin:2px 0}
+.nowcard .nx{font-size:13.5px;color:var(--muted)}
+.nowcard .nx strong{color:var(--ink)}
+
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:99px;background:linear-gradient(90deg,var(--accent) var(--fill,0%),var(--line) var(--fill,0%))}
+input[type=range]::-moz-range-track{height:8px;border-radius:99px;background:var(--line)}
+input[type=range]::-moz-range-progress{height:8px;border-radius:99px;background:var(--accent)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--surface);border:3px solid var(--accent);margin-top:-7px}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--surface);border:3px solid var(--accent)}
+
+.transport{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap}
+.ib{height:46px;min-width:46px;padding:0 12px;border-radius:15px;border:1px solid var(--line);background:var(--surface);display:inline-flex;align-items:center;justify-content:center;gap:6px;font-weight:600;font-size:13px}
+.ib:hover{background:var(--surface2)}
+.ib:disabled{opacity:.4;cursor:default}
+.ib.play{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);padding:0 22px;border-radius:999px;font-size:15px;height:50px}
+.ib.play:hover{filter:brightness(1.08);background:var(--accent)}
+.speed{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted)}
+.speed input{flex:1}
+.speed output{min-width:76px;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);font-weight:600}
+.keys{font-size:12.5px;color:var(--muted);text-align:center}
+
+/* panel */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:30px 12px 30px 12px;overflow:hidden}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--line)}
+.tab{background:transparent;border:0;padding:16px 6px;font-family:var(--display);font-weight:700;font-size:16.5px;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-1px}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.pane{padding:6px 22px 26px}
+.pane[hidden]{display:none}
+.sec{padding:18px 0;border-bottom:1px solid var(--line)}
+.sec:last-child{border-bottom:0}
+.sec h3{font-family:var(--display);font-size:16px;font-weight:700;margin:0 0 12px;letter-spacing:-.005em}
+.field{margin-bottom:6px}
+.field[hidden]{display:none}
+.field label{display:flex;justify-content:space-between;font-size:13.5px;font-weight:600}
+.field output{font-variant-numeric:tabular-nums;color:var(--muted);font-weight:500}
+.note{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1.5px solid var(--line);border-radius:14px;overflow:hidden}
+.seg.s4{grid-template-columns:repeat(4,1fr)}
+.seg.s3{grid-template-columns:repeat(3,1fr)}
+.seg button{border:0;background:transparent;padding:10px 6px;font-weight:700;font-size:14px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.seg small{display:block;font-weight:400;font-size:11.5px;opacity:.85}
+.swatches{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.sw{width:30px;height:30px;border-radius:50%;border:2px solid var(--surface);box-shadow:0 0 0 1.5px var(--line);padding:0}
+.sw[aria-pressed="true"]{box-shadow:0 0 0 3px var(--accent)}
+input[type=color]{width:30px;height:30px;padding:0;border:0;background:none;border-radius:50%;cursor:pointer}
+input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+input[type=color]::-webkit-color-swatch{border:2px solid var(--line);border-radius:50%}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;font-size:13.5px}
+.row label.chk{display:flex;gap:8px;align-items:center;font-weight:600}
+.row input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent)}
+.txt{width:100%;border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:9px 12px;font-weight:600}
+select.txt{appearance:auto}
+
+/* parts */
+.partlist{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.partrow{width:100%;display:flex;align-items:center;gap:10px;text-align:left;border:1.5px solid var(--line);background:var(--surface);border-radius:14px;padding:8px 12px}
+.partrow i{width:18px;height:18px;border-radius:50%;flex:none;box-shadow:0 0 0 1.5px var(--line)}
+.partrow b{font-weight:700;font-size:14.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.partrow span{font-size:12.5px;color:var(--muted);white-space:nowrap}
+.partrow[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.addgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.addgrid button{border:1.5px dashed var(--line);background:transparent;border-radius:12px;padding:9px 6px;font-weight:600;font-size:13px;text-align:center}
+.addgrid button:hover{border-color:var(--accent);background:var(--accent-soft)}
+.addgrid small{display:block;font-weight:400;font-size:11px;color:var(--muted);line-height:1.25}
+.edhead{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+.edhead .chip{font-size:12.5px;padding:6px 11px}
+.edhead .chip:disabled{opacity:.4;cursor:default}
+.sub{font-family:var(--display);font-weight:700;font-size:14px;margin:16px 0 6px}
+.shapesel{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.shapesel button{border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:7px 4px;font-weight:600;font-size:12.5px}
+.shapesel button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+
+/* pattern */
+.ptitle{font-family:var(--display);font-weight:800;font-size:26px;letter-spacing:-.02em;margin:18px 0 4px;line-height:1.1}
+.stats{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}
+.stat{background:var(--surface2);border-radius:12px;padding:7px 12px;font-size:12.5px;color:var(--muted)}
+.stat b{display:block;color:var(--ink);font-size:16px;font-family:var(--display);font-weight:700;font-variant-numeric:tabular-nums}
+.pblock h4{font-family:var(--display);font-size:15px;margin:18px 0 6px}
+.pblock h4 .make{font-family:var(--body);font-weight:600;font-size:12px;background:var(--accent-soft);border-radius:99px;padding:2px 9px;margin-left:6px}
+.pblock ul{margin:0;padding-left:18px;font-size:14px}
+.pblock li{margin:2px 0}
+.ydot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:6px;vertical-align:-1px;box-shadow:0 0 0 1.5px var(--line)}
+.rounds{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.rounds li button{width:100%;text-align:left;border:0;background:transparent;padding:8px 10px 8px 12px;border-left:3px solid var(--line);border-radius:4px 10px 10px 4px;font-size:14.5px;line-height:1.4;font-variant-numeric:tabular-nums}
+.rounds li button:hover{background:var(--surface2)}
+.rounds li button .rn{font-weight:700}
+.rounds li button .cnt{color:var(--muted);white-space:nowrap}
+.rounds li.on button{border-left-color:var(--accent);background:var(--accent-soft)}
+.rounds li.done button{border-left-color:var(--accent)}
+.rounds li.msg{font-size:13.5px;color:var(--muted);padding:4px 12px 4px 15px;font-style:italic}
+.partwrap{border-top:1px solid var(--line);margin-top:22px}
+.copy{margin-top:18px;border:1.5px solid var(--accent);background:transparent;color:var(--accent);border-radius:999px;padding:10px 20px;font-weight:700}
+.copy:hover{background:var(--accent-soft)}
+.warn{background:var(--accent-soft);border-radius:12px;padding:8px 12px;font-size:12.5px;margin-top:10px}
+
+.chip.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+[hidden]{display:none !important}
+header.top{flex-wrap:wrap}
+.modeswitch{margin-left:auto;display:flex;border:1.5px solid var(--line);border-radius:999px;overflow:hidden;background:var(--surface)}
+.modeswitch button{border:0;background:transparent;padding:9px 18px;font-weight:700;font-size:14px}
+.modeswitch button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.tabs{display:flex}
+.tab{flex:1 1 0;min-width:0}
+.chartwrap{max-height:480px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface2);margin-top:10px}
+.chartwrap canvas{display:block;touch-action:none;cursor:crosshair}
+.chip.primary:disabled{opacity:.45;cursor:default}
+.projrow{display:flex;gap:6px;align-items:center}
+.projrow .partrow{flex:1;min-width:0}
+.emptymsg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:18px 24px;display:grid;gap:6px;justify-items:center;max-width:80%}
+.emptymsg[hidden]{display:none}
+.emptymsg b{font-family:var(--display);font-size:20px;letter-spacing:-.01em}
+.emptymsg span{font-size:13.5px;color:var(--muted)}
+@media (max-width:960px){
+  .app{grid-template-columns:1fr;padding:6px 12px 36px;gap:16px}
+  header.top{padding:16px 16px 6px}
+  .stage{position:relative;top:0;border-radius:24px}
+  .viewer{height:clamp(300px,52vw,480px)}
+  .hint{display:none}
+  .panel{border-radius:24px}
+}
+@media (max-width:520px){
+  .viewer{height:340px}
+  .legend{font-size:11.5px;gap:8px;padding:5px 10px}
+  .ib{min-width:42px;padding:0 9px}
+  .tab{font-size:15px}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <svg class="logo" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+    <circle cx="24" cy="24" r="20" fill="#5a43e0"/>
+    <g stroke="#fff" stroke-width="2.2" stroke-linecap="round" fill="none" opacity=".92">
+      <path d="M8 20c10 4 22 4 32-2"/><path d="M6.5 27c11 5 25 5 35-2"/><path d="M10 34c9 3 20 3 28-1"/>
+      <path d="M17 6c-5 10-4 24 3 35"/><path d="M28 5c4 10 4 24-2 37"/>
+    </g>
+    <path d="M38 38c5 1 7 4 6 6" stroke="#5a43e0" stroke-width="2.4" stroke-linecap="round"/>
+  </svg>
+  <div>
+    <h1>Stitch Studio</h1>
+    <p>Build crochet designs from shapes or pictures, then watch them get worked stitch by stitch in 3D.</p>
+  </div>
+  <div class="modeswitch" role="group" aria-label="Mode">
+    <button id="btnModeShapes" aria-pressed="true">Shapes</button>
+    <button id="btnModeTap" aria-pressed="false">Tapestry</button>
+  </div>
+</header>
+
+<main class="app">
+  <section class="stage" aria-label="3D simulation">
+    <div class="viewer" id="viewer">
+      <div class="badge" aria-live="polite"><b id="bRound">Not started</b><span id="bSub"></span></div>
+      <div class="vtools">
+        <button class="chip" id="btnSpin" aria-pressed="true">Auto-spin</button>
+        <button class="chip" id="btnView">Reset view</button>
+      </div>
+      <div class="legend" id="legend"></div>
+      <div class="hint">Drag to orbit, scroll or pinch to zoom</div>
+      <div class="emptymsg" id="emptyMsg" hidden><b>Blank canvas</b><span>Add a shape to start your design.</span><button class="chip primary" id="emptyAdd">Add a sphere</button></div>
+    </div>
+    <div class="playback">
+      <div class="nowcard" aria-live="polite">
+        <div class="k" id="nKey"></div>
+        <div class="ins" id="nIns"></div>
+        <div class="nx" id="nNext"></div>
+      </div>
+      <input type="range" id="scrub" min="0" max="100" value="0" step="1" aria-label="Progress through the whole project, in stitches">
+      <div class="transport">
+        <button class="ib" id="bFirst" title="Back to start (Home)" aria-label="Back to start"></button>
+        <button class="ib" id="bRowBack" title="Undo a round (Down arrow)"></button>
+        <button class="ib" id="bStBack" title="Undo a stitch (Left arrow)" aria-label="Undo a stitch"></button>
+        <button class="ib play" id="bPlay" title="Play or pause (Space)"></button>
+        <button class="ib" id="bStFwd" title="Add a stitch (Right arrow)" aria-label="Add a stitch"></button>
+        <button class="ib" id="bRowFwd" title="Finish the round (Up arrow)"></button>
+        <button class="ib" id="bLast" title="Jump to finished (End)" aria-label="Jump to finished"></button>
+      </div>
+      <div class="speed"><span>Speed</span><input type="range" id="speed" min="0" max="100" value="46" aria-label="Playback speed"><output id="oSpeed"></output></div>
+      <div class="keys">Keyboard: ← → stitch, ↑ ↓ round, space to play</div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="tabs" role="tablist">
+      <button class="tab" data-mode="shapes" role="tab" id="tabParts" aria-selected="true" aria-controls="paneParts">Parts</button>
+      <button class="tab" data-mode="tapestry" role="tab" id="tabImage" aria-selected="false" aria-controls="paneImage" hidden>Picture</button>
+      <button class="tab" data-mode="tapestry" role="tab" id="tabChart" aria-selected="false" aria-controls="paneChart" hidden>Chart</button>
+      <button class="tab" data-mode="both" role="tab" id="tabSet" aria-selected="false" aria-controls="paneSet">Stitches</button>
+      <button class="tab" data-mode="both" role="tab" id="tabPat" aria-selected="false" aria-controls="panePat">Pattern</button>
+    </div>
+
+    <!-- PARTS -->
+    <div class="pane" id="paneParts" role="tabpanel" aria-labelledby="tabParts">
+      <div class="sec">
+        <h3>Project</h3>
+        <input class="txt" type="text" id="pname" aria-label="Project name" maxlength="40">
+        <div class="edhead" style="margin:10px 0 0">
+          <button class="chip primary btnSave">Save project</button>
+          <button class="chip btnNew">New blank project</button>
+        </div>
+        <p class="note saveStatus"></p>
+      </div>
+      <div class="sec">
+        <h3>My projects</h3>
+        <ul class="partlist projlist"></ul>
+        <p class="note" style="margin-top:14px">Or start from a template. This replaces your current design.</p>
+        <div class="chips" id="presetChips" style="margin-top:8px"></div>
+      </div>
+      <div class="sec">
+        <h3>Parts</h3>
+        <p class="note" style="margin:0 0 10px">Parts are made in this order. Select one to edit it. Its bounding box is outlined in pink in the 3D view.</p>
+        <ul class="partlist" id="partList"></ul>
+        <h3 style="margin-top:18px">Add a part</h3>
+        <div class="addgrid" id="addGrid"></div>
+      </div>
+      <div class="sec" id="editor"></div>
+    </div>
+
+    <!-- TAPESTRY: PICTURE -->
+    <div class="pane" id="paneImage" role="tabpanel" aria-labelledby="tabImage" hidden>
+      <div class="sec">
+        <h3>Project</h3>
+        <input class="txt" type="text" id="tname" aria-label="Project name" maxlength="40">
+        <div class="edhead" style="margin:10px 0 0">
+          <button class="chip primary btnSave">Save project</button>
+          <button class="chip btnNew">New blank project</button>
+        </div>
+        <p class="note saveStatus"></p>
+      </div>
+      <div class="sec">
+        <h3>Picture</h3>
+        <p class="note" style="margin:0 0 10px">Upload a painting, photo or drawing and it becomes a colour chart. Or start from a sample, or a blank grid you paint yourself.</p>
+        <div class="edhead">
+          <button class="chip primary" id="tUpload">Upload an image</button>
+          <button class="chip" id="tStarry">Starry sky sample</button>
+          <button class="chip" id="tSunset">Sunset sample</button>
+          <button class="chip" id="tBlank">Blank grid</button>
+        </div>
+        <input type="file" id="tfile" accept="image/*" hidden>
+        <p class="note" id="tSrcNote"></p>
+      </div>
+      <div class="sec">
+        <h3>Size and colours</h3>
+        <div class="field"><label for="tcols">Width <output id="otcols"></output></label><input type="range" id="tcols" min="20" max="160" step="1"></div>
+        <div class="field" id="ftrows"><label for="trows">Height <output id="otrows"></output></label><input type="range" id="trows" min="10" max="200" step="1"></div>
+        <div class="field" id="ftk"><label for="tk">Number of colours <output id="otk"></output></label><input type="range" id="tk" min="2" max="12" step="1"></div>
+        <div class="row" id="ftdither" style="margin-top:4px"><label class="chk"><input type="checkbox" id="tdither"> Blend colours with dithering</label></div>
+        <p class="note" id="tSizeNote"></p>
+      </div>
+      <div class="sec">
+        <h3>My projects</h3>
+        <ul class="partlist projlist"></ul>
+      </div>
+    </div>
+
+    <!-- TAPESTRY: CHART -->
+    <div class="pane" id="paneChart" role="tabpanel" aria-labelledby="tabChart" hidden>
+      <div class="sec">
+        <h3>Colours</h3>
+        <ul class="partlist" id="tPalette"></ul>
+        <div class="edhead" style="margin:10px 0 0"><button class="chip" id="tAddColour">Add a colour</button></div>
+      </div>
+      <div class="sec">
+        <h3>Edit the chart</h3>
+        <div class="seg s4" id="toolSeg">
+          <button data-t="paint">Paint</button><button data-t="fill">Fill</button><button data-t="pick">Pick</button><button data-t="jump">Jump</button>
+        </div>
+        <div class="row"><span>Brush</span><div class="chips" id="brushChips" style="margin:0"></div><button class="chip" id="tUndo">Undo</button></div>
+        <div class="field"><label for="tzoom">Zoom <output id="otzoom"></output></label><input type="range" id="tzoom" min="3" max="20" step="1"></div>
+        <div class="chartwrap" id="chartWrap"><canvas id="chart"></canvas></div>
+        <p class="note">Row 1 is at the bottom and is worked right to left, then rows alternate. Faded cells are not worked yet. Jump moves the 3D view to the row you tap.</p>
+      </div>
+    </div>
+
+    <!-- STITCHES -->
+    <div class="pane" id="paneSet" role="tabpanel" aria-labelledby="tabSet" hidden>
+      <div class="sec">
+        <h3>Stitch type (US terms)</h3>
+        <div class="seg s4" id="stitchSeg"></div>
+        <p class="note" id="stitchNote"></p>
+      </div>
+      <div class="sec">
+        <h3>Yarn and gauge</h3>
+        <div class="chips" id="gaugeChips"></div>
+        <div class="field"><label for="spc">Stitches per 10 cm <output id="oSpc"></output></label><input type="range" id="spc" min="12" max="32" step="1"></div>
+        <div class="field"><label for="rpc">Single crochet rounds per 10 cm <output id="oRpc"></output></label><input type="range" id="rpc" min="12" max="36" step="1"></div>
+        <p class="note">Gauge is measured in single crochet. Taller stitches are scaled from it automatically, so changing the stitch type keeps your yarn and hook the same.</p>
+      </div>
+      <div class="sec">
+        <h3>Stitch counts</h3>
+        <div class="seg" id="styleSeg">
+          <button data-v="classic" aria-pressed="true">Classic<small>even multiples</small></button>
+          <button data-v="smooth" aria-pressed="false">Smooth<small>closest fit to shape</small></button>
+        </div>
+      </div>
+      <div class="sec">
+        <h3>Simulation</h3>
+        <div class="row" style="margin-top:0"><label class="chk"><input type="checkbox" id="hilite"> Highlight increases and decreases</label></div>
+      </div>
+    </div>
+
+    <!-- PATTERN -->
+    <div class="pane" id="panePat" role="tabpanel" aria-labelledby="tabPat" hidden>
+      <div id="patternOut"></div>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+
+/* ------------------------------------------------------------------ helpers */
+var TAU = Math.PI * 2, PI = Math.PI, D2R = PI / 180;
+function $(s, r){ return (r || document).querySelector(s); }
+function clamp(v, a, b){ return Math.min(b, Math.max(a, v)); }
+function fmt(n, d){ return (+n).toFixed(d == null ? 1 : d).replace(/\.0+$/, '').replace(/(\.\d)0$/, '$1'); }
+function esc(s){ return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+
+var S = {
+  stitch: 'sc', spc: 20, rpc: 22, style: 'classic',
+  hilite: false, auto: !window.matchMedia('(prefers-reduced-motion: reduce)').matches, speed: 30
+};
+
+/* US stitch types: height relative to sc, magic-ring start count, leg angle in the 3D V */
+var STITCH = {
+  sc:  { abbr: 'sc',  name: 'Single crochet',      hf: 1,   base: 6,  alpha: .44 },
+  hdc: { abbr: 'hdc', name: 'Half double crochet', hf: 1.5, base: 8,  alpha: .34 },
+  dc:  { abbr: 'dc',  name: 'Double crochet',      hf: 2,   base: 12, alpha: .26 },
+  tr:  { abbr: 'tr',  name: 'Treble crochet',      hf: 2.6, base: 12, alpha: .2 }
+};
+
+var SHAPES = {
+  sphere:    { name: 'Sphere',    desc: 'Ball, head',        usesH: false, closed: true,  hf: 0 },
+  ellipsoid: { name: 'Ellipsoid', desc: 'Stretched ball',    usesH: true,  closed: true,  hf: 1.4 },
+  egg:       { name: 'Egg',       desc: 'Body, bean',        usesH: true,  closed: true,  hf: 1.3 },
+  capsule:   { name: 'Capsule',   desc: 'Limb, trunk',       usesH: true,  closed: true,  hf: 2 },
+  cup:       { name: 'Cup',       desc: 'Pot, basket',       usesH: true,  closed: false, hf: 1 },
+  bowl:      { name: 'Bowl',      desc: 'Half sphere',       usesH: false, closed: false, hf: 0 },
+  beanie:    { name: 'Beanie',    desc: 'Rounded crown',     usesH: true,  closed: false, hf: .85 },
+  cone:      { name: 'Cone',      desc: 'Horn, nose, tusk',  usesH: true,  closed: false, hf: 1.5 },
+  disc:      { name: 'Disc',      desc: 'Flat circle, ear',  usesH: false, closed: false, hf: 0 }
+};
+
+var GAUGES = [
+  { n: 'Fingering', spc: 28, rpc: 30 },
+  { n: 'DK',        spc: 22, rpc: 24 },
+  { n: 'Worsted',   spc: 18, rpc: 20 },
+  { n: 'Chunky',    spc: 14, rpc: 16 }
+];
+var SWATCHES = ['#f0a93c','#e0457b','#e4572e','#8fb996','#3a9ea5','#7bb2e6','#8b6fd6','#efe6d0','#9aa6bd','#44464f'];
+
+/* ------------------------------------------------------------ pattern maths */
+function profileFor(shape, D, H){
+  var a = D / 2, p = [], N = 200;
+  function arc(f, t0, t1, n){ for (var i = 0; i <= n; i++){ p.push(f(t0 + (t1 - t0) * i / n)); } }
+  function line(r0, z0, r1, z1, n){ for (var i = 0; i <= n; i++){ var f = i / n; p.push([r0 + (r1 - r0) * f, z0 + (z1 - z0) * f]); } }
+  switch (shape){
+    case 'sphere':
+      arc(function(t){ return [a * Math.sin(t), a * (1 - Math.cos(t))]; }, 0, PI, N); break;
+    case 'ellipsoid':
+      arc(function(t){ return [a * Math.sin(t), H / 2 * (1 - Math.cos(t))]; }, 0, PI, N); break;
+    case 'egg':
+      arc(function(t){ return [a * Math.sin(t) * (1 + .18 * Math.cos(t)), H / 2 * (1 - Math.cos(t))]; }, 0, PI, N); break;
+    case 'capsule':
+      var Hc = Math.max(H, D), st = Hc - D;
+      arc(function(t){ return [a * Math.sin(t), a * (1 - Math.cos(t))]; }, 0, PI / 2, N / 2);
+      p.push([a, a + st]);
+      arc(function(t){ return [a * Math.sin(t), st + a * (1 - Math.cos(t))]; }, PI / 2, PI, N / 2); break;
+    case 'cup':
+      line(0, 0, a, 0, N / 2); line(a, 0, a, H, N / 2); break;
+    case 'bowl':
+      arc(function(t){ return [a * Math.sin(t), a * (1 - Math.cos(t))]; }, 0, PI / 2, N); break;
+    case 'beanie':
+      var rho = Math.min(a * .42, H * .6);
+      line(0, 0, a - rho, 0, N / 3);
+      arc(function(t){ return [(a - rho) + rho * Math.sin(t), rho * (1 - Math.cos(t))]; }, 0, PI / 2, N / 3);
+      line(a, rho, a, H, N / 3); break;
+    case 'cone':
+      line(0, 0, a, H, N); break;
+    case 'disc':
+      line(0, 0, a, 0, N); break;
+  }
+  return p;
+}
+function makeSampler(p){
+  var cum = [0], i;
+  for (i = 1; i < p.length; i++) cum.push(cum[i - 1] + Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]));
+  var L = cum[cum.length - 1];
+  return { L: L, at: function(s){
+    s = clamp(s, 0, L);
+    var lo = 0, hi = cum.length - 1;
+    while (hi - lo > 1){ var m = (lo + hi) >> 1; if (cum[m] <= s) lo = m; else hi = m; }
+    var seg = (cum[hi] - cum[lo]) || 1, f = (s - cum[lo]) / seg;
+    return { r: p[lo][0] + (p[hi][0] - p[lo][0]) * f, z: p[lo][1] + (p[hi][1] - p[lo][1]) * f };
+  }};
+}
+function distribute(total, groups){
+  var s = [];
+  for (var i = 0; i < groups; i++) s.push(Math.floor((i + 1) * total / groups) - Math.floor(i * total / groups));
+  return s;
+}
+function periodic(sizes){
+  var n = sizes.length;
+  for (var p = 1; p <= n; p++){
+    if (n % p) continue;
+    var ok = true;
+    for (var i = p; i < n; i++){ if (sizes[i] !== sizes[i % p]){ ok = false; break; } }
+    if (ok) return { per: sizes.slice(0, p), count: n / p };
+  }
+}
+function groupsText(sizes, g){
+  var pr = periodic(sizes);
+  if (pr.count > 1 || sizes.length <= 2){
+    var inner = pr.per.map(g).join(', ');
+    return pr.count > 1 ? '[' + inner + '] ×' + pr.count : inner;
+  }
+  var runs = [];
+  sizes.forEach(function(s){ var l = runs[runs.length - 1]; if (l && l.s === s) l.c++; else runs.push({ s: s, c: 1 }); });
+  return runs.map(function(r){ return r.c > 1 ? '[' + g(r.s) + '] ×' + r.c : g(r.s); }).join(', ');
+}
+
+/* One part (a body of revolution worked in the round) -> rounds, counts, node radii */
+function generatePart(p){
+  var ST = STITCH[S.stitch], B = ST.base, ab = ST.abbr, meta = SHAPES[p.shape];
+  var w = 10 / S.spc, h = 10 / (S.rpc / ST.hf);
+  var prof = makeSampler(profileFor(p.shape, p.D, p.H));
+  var L = prof.L, R0 = Math.max(3, Math.round(L / h)), step = L / R0;
+  var classic = S.style === 'classic';
+  function quant(t){ return classic ? Math.max(B, B * Math.round(t / B)) : Math.max(B, Math.round(t)); }
+  function bounds(pv){
+    var lo = Math.ceil(pv / 2), hi = pv * 2;
+    if (classic){ lo = B * Math.ceil(lo / B); hi = B * Math.floor(hi / B); }
+    return [lo, hi];
+  }
+  var counts = [], k, n;
+  for (k = 1; k <= R0; k++){
+    if (k === 1) n = B;
+    else {
+      n = quant(TAU * prof.at(k * step).r / w);
+      var b = bounds(counts[k - 2]); n = clamp(n, b[0], b[1]);
+    }
+    counts.push(n);
+  }
+  if (meta.closed){
+    var seen = false, cut = -1;
+    for (k = 0; k < counts.length; k++){
+      if (counts[k] > B) seen = true;
+      else if (seen && counts[k] === B){ cut = k + 1; break; }
+    }
+    if (cut > 0) counts.length = cut;
+    while (counts[counts.length - 1] > B){
+      var lastN = counts[counts.length - 1];
+      counts.push(clamp(quant(lastN / 2), bounds(lastN)[0], lastN));
+    }
+  }
+  var R = counts.length;
+
+  var rounds = [], i, j;
+  for (i = 0; i < R; i++){
+    var nn = counts[i], pv = i ? counts[i - 1] : 0, o = { n: nn, prev: pv, types: [], note: '' };
+    o.color = p.stripes ? Math.floor(i / p.stripeN) % 2 : 0;
+    if (i === 0){
+      o.kind = 'start'; o.text = B + ' ' + ab + ' in magic ring';
+      for (j = 0; j < B; j++) o.types.push(0);
+    } else if (nn === pv){
+      o.kind = 'even'; o.text = ab + ' in each st around';
+      for (j = 0; j < nn; j++) o.types.push(0);
+    } else if (nn > pv){
+      o.kind = 'inc';
+      var d = nn - pv, sizes = distribute(pv, d);
+      o.text = sizes.every(function(s){ return s === 1; })
+        ? 'inc in each st around'
+        : groupsText(sizes, function(s){ return s === 1 ? 'inc' : ab + ' ' + (s - 1) + ', inc'; });
+      sizes.forEach(function(s){ for (var q = 0; q < s - 1; q++) o.types.push(0); o.types.push(1, 1); });
+    } else {
+      o.kind = 'dec';
+      var d2 = pv - nn, sz = distribute(pv, d2);
+      o.text = groupsText(sz, function(s){ return s === 2 ? 'dec' : ab + ' ' + (s - 2) + ', dec'; });
+      sz.forEach(function(s){ for (var q = 0; q < s - 2; q++) o.types.push(0); o.types.push(2); });
+    }
+    rounds.push(o);
+  }
+  if (meta.closed && R >= 4) rounds[R - 3].note = 'Start stuffing now. Add more as you go.';
+
+  var nodes = [{ r: 0, z: 0 }];
+  for (i = 1; i <= R; i++) nodes.push({ r: counts[i - 1] * w / TAU, z: prof.at(Math.min(L, i * step)).z });
+
+  var lines = [];
+  rounds.forEach(function(o, idx){
+    var prevLine = lines[lines.length - 1];
+    var colourChange = idx > 0 && o.color !== rounds[idx - 1].color;
+    if (prevLine && o.kind === 'even' && prevLine.kind === 'even' && prevLine.n === o.n && prevLine.color === o.color && !prevLine.note && !colourChange){
+      prevLine.to = idx + 1; if (o.note) prevLine.note = o.note; return;
+    }
+    lines.push({ from: idx + 1, to: idx + 1, kind: o.kind, n: o.n, text: o.text, color: o.color, note: o.note, change: colourChange });
+  });
+
+  var total = 0, roundEnd = [];
+  counts.forEach(function(c){ total += c; roundEnd.push(total); });
+  var maxR = 0, maxZ = 0;
+  nodes.forEach(function(nd){ maxR = Math.max(maxR, nd.r); maxZ = Math.max(maxZ, nd.z); });
+
+  return { w: w, h: h, B: B, ab: ab, meta: meta, rounds: rounds, counts: counts, nodes: nodes, lines: lines,
+           total: total, roundEnd: roundEnd, R: R, maxR: maxR, maxZ: maxZ };
+}
+
+/* ------------------------------------------------------------------ project */
+var parts = [], sel = null, nextId = 1, projectName = 'My project';
+
+function mkPart(o){
+  var d = { id: 'p' + (nextId++), name: 'Part', shape: 'sphere', D: 6, H: 6, color: SWATCHES[0], stripes: false, stripeN: 2, color2: '#f2ead8',
+            x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0, mirror: false };
+  for (var k in o) d[k] = o[k];
+  return d;
+}
+function P(name, shape, D, H, x, y, z, rx, ry, rz, mirror, color){
+  return mkPart({ name: name, shape: shape, D: D, H: H, x: x, y: y, z: z, rx: rx, ry: ry, rz: rz, mirror: !!mirror, color: color });
+}
+var PRESETS = {
+  elephant: { label: 'Elephant', name: 'Elephant', build: function(){ var g = '#9aa6bd', pk = '#c9a5ba', iv = '#f1ead6'; return [
+    P('Body',       'ellipsoid', 11,  14,  0,   9.5,  0,    90,  0, 0,   0, g),
+    P('Head',       'sphere',    8.5, 8.5, 0,   13.5, 7.8,  0,   0, 0,   0, g),
+    P('Trunk',      'capsule',   3.4, 9.5, 0,   8.2,  11.3, -10, 0, 0,   0, g),
+    P('Front leg',  'capsule',   4.2, 7.5, 3,   3.75, 3.8,  0,   0, 0,   1, g),
+    P('Back leg',   'capsule',   4.2, 7.5, 3,   3.75, -3.8, 0,   0, 0,   1, g),
+    P('Ear',        'disc',      7,   0,   4.7, 14,   6.8,  0,   0, 75,  1, pk),
+    P('Tusk',       'cone',      1.6, 4,   2.4, 10,   11,   -75, 0, 0,   1, iv),
+    P('Tail',       'cone',      1.4, 4,   0,   10.5, -7.8, 0,   0, 0,   0, g)
+  ]; } },
+  teddy: { label: 'Teddy bear', name: 'Teddy bear', build: function(){ var b = '#c98f5a', l = '#ead2ac'; return [
+    P('Body',  'egg',     9,   11,  0,   7.5,  0,   0,  0, 0,  0, b),
+    P('Head',  'sphere',  8,   8,   0,   15.2, 0.3, 0,  0, 0,  0, b),
+    P('Snout', 'sphere',  3.6, 3.6, 0,   14.4, 3.7, 0,  0, 0,  0, l),
+    P('Ear',   'sphere',  3.2, 3.2, 3.2, 18.9, 0,   0,  0, 0,  1, b),
+    P('Arm',   'capsule', 2.8, 6.5, 5.2, 9,    0.8, 0,  0, 20, 1, b),
+    P('Leg',   'capsule', 3.4, 6,   2.6, 1.7,  3.2, 90, 0, 0,  1, b)
+  ]; } },
+  snowman: { label: 'Snowman', name: 'Snowman', build: function(){ var w = '#f4f6fa'; return [
+    P('Bottom ball', 'sphere',  12,  12,  0,   6,    0,   0,   0, 0,   0, w),
+    P('Middle ball', 'sphere',  9,   9,   0,   15.3, 0,   0,   0, 0,   0, w),
+    P('Head',        'sphere',  6.5, 6.5, 0,   22.4, 0,   0,   0, 0,   0, w),
+    P('Hat',         'beanie',  6.2, 3.6, 0,   26.8, 0,   180, 0, 0,   0, '#3b4a6b'),
+    P('Carrot nose', 'cone',    1.6, 3.4, 0,   22.2, 3.9, -90, 0, 0,   0, '#ff8a3d'),
+    P('Twig arm',    'capsule', 1.6, 7,   7.3, 16.5, 0,   0,   0, -60, 1, '#6b4a2f')
+  ]; } },
+  mushroom: { label: 'Mushroom', name: 'Mushroom', build: function(){ var wh = '#f4ead6'; return [
+    P('Stem',  'capsule', 4.4, 7.5, 0,    3.75, 0,    0,   0, 0, 0, wh),
+    P('Cap',   'bowl',    12.5, 0,  0,    9.7,  0,    180, 0, 0, 0, '#d64545'),
+    P('Spot A','disc',    2.4, 0,   2.8,  12.3, 1,    0,   0, 0, 0, wh),
+    P('Spot B','disc',    2,   0,   -2.2, 12.25, -1.5, 0,  0, 0, 0, wh),
+    P('Spot C','disc',    1.8, 0,   0.3,  12.85, -2.2, 0,  0, 0, 0, wh)
+  ]; } },
+  ball: { label: 'Single ball', name: 'Amigurumi ball', build: function(){ return [ P('Ball', 'sphere', 8, 8, 0, 4, 0, 0, 0, 0, 0, '#f0a93c') ]; } }
+};
+
+/* ------------------------------------------------------------------- three */
+var viewer = $('#viewer');
+var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setClearColor(0x000000, 0);
+viewer.insertBefore(renderer.domElement, viewer.firstChild);
+var cv = renderer.domElement;
+var scene = new THREE.Scene();
+var camera = new THREE.PerspectiveCamera(38, 1, 0.1, 3000);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8aa8, .95));
+var key = new THREE.DirectionalLight(0xffffff, .85); key.position.set(30, 60, 40); scene.add(key);
+var rim = new THREE.DirectionalLight(0xbfd0ff, .35); rim.position.set(-40, 20, -30); scene.add(rim);
+
+var shadowTex = (function(){
+  var c = document.createElement('canvas'); c.width = c.height = 128;
+  var g = c.getContext('2d'), gr = g.createRadialGradient(64, 64, 4, 64, 64, 62);
+  gr.addColorStop(0, 'rgba(0,0,0,.42)'); gr.addColorStop(.6, 'rgba(0,0,0,.16)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(c);
+})();
+var shadow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false }));
+shadow.rotation.x = -PI / 2; scene.add(shadow);
+var selGroup = new THREE.Group(); scene.add(selGroup);
+
+var cam = { az: .75, pol: 1.12, dist: 30, target: new THREE.Vector3(0, 4, 0), min: 3, max: 300 };
+function updateCamera(){
+  var sp = Math.sin(cam.pol);
+  camera.position.set(cam.target.x + cam.dist * sp * Math.sin(cam.az), cam.target.y + cam.dist * Math.cos(cam.pol), cam.target.z + cam.dist * sp * Math.cos(cam.az));
+  camera.lookAt(cam.target);
+}
+function resize(){
+  var w = viewer.clientWidth, h = viewer.clientHeight;
+  if (!w || !h) return;
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(viewer);
+
+var ptrs = new Map(), pinch = 0, interacting = false;
+function pdist(){ var a = Array.from(ptrs.values()); return Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y); }
+cv.addEventListener('pointerdown', function(e){
+  try { cv.setPointerCapture(e.pointerId); } catch (x) {}
+  ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (ptrs.size === 2) pinch = pdist();
+  interacting = true;
+});
+cv.addEventListener('pointermove', function(e){
+  var p = ptrs.get(e.pointerId); if (!p) return;
+  var dx = e.clientX - p.x, dy = e.clientY - p.y;
+  p.x = e.clientX; p.y = e.clientY;
+  if (ptrs.size === 1){
+    cam.az -= dx * .008; cam.pol = clamp(cam.pol - dy * .008, .12, PI - .12);
+  } else if (ptrs.size === 2){
+    var d = pdist(); if (pinch > 0) cam.dist = clamp(cam.dist * pinch / d, cam.min, cam.max); pinch = d;
+  }
+});
+function endPtr(e){ ptrs.delete(e.pointerId); if (!ptrs.size) interacting = false; pinch = 0; }
+cv.addEventListener('pointerup', endPtr); cv.addEventListener('pointercancel', endPtr);
+cv.addEventListener('wheel', function(e){ e.preventDefault(); cam.dist = clamp(cam.dist * Math.exp(e.deltaY * .0012), cam.min, cam.max); }, { passive: false });
+
+/* ------------------------------------------------------------ stitch meshes */
+var model = null, cache = {}, placed = 0, playing = false, acc = 0, tabName = 'parts', needFit = false;
+
+function disposeMeshes(pm){
+  if (!pm.meshes) return;
+  pm.meshes.forEach(function(m){ scene.remove(m); if (m.dispose) m.dispose(); });
+  if (pm.geo) pm.geo.dispose();
+  if (pm.mat) pm.mat.dispose();
+  pm.meshes = null; pm.geo = pm.mat = null;
+}
+function copiesOf(p){
+  var c = [{ pos: [p.x, p.y, p.z], rot: [p.rx, p.ry, p.rz] }];
+  if (p.mirror) c.push({ pos: [-p.x, p.y, p.z], rot: [p.rx, -p.ry, -p.rz] });
+  return c;
+}
+
+function buildPartMeshes(pm, legs){
+  disposeMeshes(pm);
+  var p = pm.spec, T = pm.total, w = pm.w, h = pm.h, ST = STITCH[S.stitch];
+  var ca = Math.cos(ST.alpha), sa = Math.sin(ST.alpha), si = 0, k, j;
+  pm.legs = legs; pm.colorKey = null;
+  pm.sRound = new Int32Array(T); pm.sType = new Uint8Array(T); pm.sCol = new Uint8Array(T);
+  for (k = 0; k < pm.R; k++) for (j = 0; j < pm.counts[k]; j++){
+    pm.sRound[si] = k; pm.sType[si] = pm.rounds[k].types[j]; pm.sCol[si] = pm.rounds[k].color; si++;
+  }
+  var seed = 9917 + p.id.length * 31 + T; function rnd(){ seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
+  pm.noise = new Float32Array(T * legs);
+  for (var q = 0; q < pm.noise.length; q++) pm.noise[q] = .9 + rnd() * .2;
+
+  pm.geo = new THREE.SphereGeometry(1, legs === 2 ? 10 : 8, legs === 2 ? 7 : 6);
+  pm.mat = new THREE.MeshStandardMaterial({ roughness: .95, metalness: 0 });
+  pm.meshes = []; pm.copies = copiesOf(p);
+  var bb = { min: new THREE.Vector3(1e9, 1e9, 1e9), max: new THREE.Vector3(-1e9, -1e9, -1e9) };
+
+  var m = new THREE.Matrix4(), U = new THREE.Vector3(), Tv = new THREE.Vector3(), Nv = new THREE.Vector3(),
+      Dv = new THREE.Vector3(), Zv = new THREE.Vector3(), C = new THREE.Vector3(), Pv = new THREE.Vector3(),
+      bx = new THREE.Vector3(), by = new THREE.Vector3(), bz = new THREE.Vector3();
+
+  pm.copies.forEach(function(cp){
+    var mesh = new THREE.InstancedMesh(pm.geo, pm.mat, T * legs);
+    mesh.frustumCulled = false;
+    mesh.setColorAt(0, new THREE.Color(1, 1, 1));
+    var M = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(cp.rot[0] * D2R, cp.rot[1] * D2R, cp.rot[2] * D2R, 'XYZ'));
+    M.multiply(new THREE.Matrix4().makeTranslation(0, -pm.maxZ / 2, 0));
+    M.premultiply(new THREE.Matrix4().makeTranslation(cp.pos[0], cp.pos[1], cp.pos[2]));
+    var idx = 0;
+    for (var kk = 0; kk < pm.R; kk++){
+      var n = pm.counts[kk], a = pm.nodes[kk], b = pm.nodes[kk + 1];
+      var dr = b.r - a.r, dz = b.z - a.z, len = Math.hypot(dr, dz);
+      if (len < 1e-6){ dr = 0; dz = 1; len = 1; }
+      var ur = dr / len, uz = dz / len, legLen = clamp(len * 1.25, h * .9, h * 1.6);
+      for (var jj = 0; jj < n; jj++){
+        var u = (jj + .5) / n, r = a.r + dr * u, z = a.z + dz * u, phi = TAU * (jj + .5) / n, c = Math.cos(phi), s = Math.sin(phi);
+        Pv.set(r * c, z, r * s);
+        U.set(c * ur, uz, s * ur); Tv.set(-s, 0, c); Nv.crossVectors(U, Tv);
+        if (legs === 2){
+          for (var sd = -1; sd <= 1; sd += 2){
+            Dv.copy(U).multiplyScalar(ca).addScaledVector(Tv, sd * sa);
+            C.copy(Pv).addScaledVector(Dv, legLen / 2).addScaledVector(U, -legLen * ca / 2);
+            Zv.crossVectors(Dv, Nv);
+            bx.copy(Dv).multiplyScalar(legLen * .52); by.copy(Nv).multiplyScalar(w * .33); bz.copy(Zv).multiplyScalar(w * .3);
+            m.makeBasis(bx, by, bz); m.setPosition(C); m.premultiply(M);
+            mesh.setMatrixAt(idx * 2 + (sd < 0 ? 0 : 1), m);
+            var e = m.elements;
+            bb.min.x = Math.min(bb.min.x, e[12]); bb.min.y = Math.min(bb.min.y, e[13]); bb.min.z = Math.min(bb.min.z, e[14]);
+            bb.max.x = Math.max(bb.max.x, e[12]); bb.max.y = Math.max(bb.max.y, e[13]); bb.max.z = Math.max(bb.max.z, e[14]);
+          }
+        } else {
+          Zv.crossVectors(U, Nv);
+          bx.copy(U).multiplyScalar(legLen * .62); by.copy(Nv).multiplyScalar(w * .38); bz.copy(Zv).multiplyScalar(w * .48);
+          m.makeBasis(bx, by, bz); m.setPosition(Pv); m.premultiply(M);
+          mesh.setMatrixAt(idx, m);
+          var e2 = m.elements;
+          bb.min.x = Math.min(bb.min.x, e2[12]); bb.min.y = Math.min(bb.min.y, e2[13]); bb.min.z = Math.min(bb.min.z, e2[14]);
+          bb.max.x = Math.max(bb.max.x, e2[12]); bb.max.y = Math.max(bb.max.y, e2[13]); bb.max.z = Math.max(bb.max.z, e2[14]);
+        }
+        idx++;
+      }
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.count = 0;
+    scene.add(mesh); pm.meshes.push(mesh);
+  });
+  var pad = w * .6;
+  bb.min.subScalar(pad); bb.max.addScalar(pad);
+  pm.bb = bb;
+}
+
+var HOOK = new THREE.Color('#ff2d87'), INC = new THREE.Color('#1fbf75'), DEC = new THREE.Color('#3478ff');
+function partIndexAt(g){
+  for (var i = 0; i < model.parts.length; i++) if (g < model.parts[i].end) return i;
+  return model.parts.length - 1;
+}
+function applyColors(){
+  if (!model) return;
+  var T = model.total, active = placed > 0 && placed < T, activeP = placed > 0 ? partIndexAt(placed - 1) : -1;
+  model.parts.forEach(function(pm, pi){
+    if (!pm.meshes) return;
+    if (pm.tapestry){ tapColors(pm); return; }
+    var lp = clamp(placed - pm.start, 0, pm.total), legs = pm.legs, isAct = active && pi === activeP;
+    var hookL = isAct ? lp - 1 : -1, curR = isAct ? pm.sRound[lp - 1] : -1;
+    pm.meshes.forEach(function(m){ m.count = lp * legs; });
+    var keyS = [lp, hookL, curR, S.hilite, pm.spec.color, pm.spec.color2, pm.spec.stripes].join('|');
+    if (pm.colorKey === keyS) return;
+    pm.colorKey = keyS;
+    if (lp === 0) return;
+    var c1 = new THREE.Color(pm.spec.color), c2 = new THREE.Color(pm.spec.color2);
+    var arr = pm.meshes[0].instanceColor.array;
+    for (var i = 0; i < lp; i++){
+      var base = pm.sCol[i] ? c2 : c1, r = base.r, g = base.g, b = base.b, t = pm.sType[i];
+      if (i === hookL){ r = HOOK.r; g = HOOK.g; b = HOOK.b; }
+      else if (S.hilite && t === 1){ r = INC.r; g = INC.g; b = INC.b; }
+      else if (S.hilite && t === 2){ r = DEC.r; g = DEC.g; b = DEC.b; }
+      else if (pm.sRound[i] === curR){ r += (1 - r) * .2; g += (1 - g) * .2; b += (1 - b) * .2; }
+      for (var l = 0; l < legs; l++){
+        var ix = i * legs + l, f = pm.noise[ix], o = ix * 3;
+        arr[o] = Math.min(1, r * f); arr[o + 1] = Math.min(1, g * f); arr[o + 2] = Math.min(1, b * f);
+      }
+    }
+    pm.meshes[0].instanceColor.needsUpdate = true;
+    for (var q = 1; q < pm.meshes.length; q++){ pm.meshes[q].instanceColor.array.set(arr); pm.meshes[q].instanceColor.needsUpdate = true; }
+  });
+  if (rodGroup) rodGroup.visible = model.total > 0 && placed >= model.total;
+}
+
+function updateBounds(){
+  var bb = { min: new THREE.Vector3(1e9, 1e9, 1e9), max: new THREE.Vector3(-1e9, -1e9, -1e9) };
+  model.parts.forEach(function(pm){ if (pm.bb){ bb.min.min(pm.bb.min); bb.max.max(pm.bb.max); } });
+  model.bb = bb;
+}
+function updateGround(){
+  var bb = model.bb, w = model.parts.length ? model.parts[0].w : .5;
+  shadow.visible = model.parts.length > 0 && !(model.parts[0] && model.parts[0].tapestry);
+  var sx = bb.max.x - bb.min.x, sz = bb.max.z - bb.min.z, s = Math.max(sx, sz, 4) * 1.5;
+  shadow.scale.set(s, s, 1);
+  shadow.position.set((bb.min.x + bb.max.x) / 2, bb.min.y - w * .3, (bb.min.z + bb.max.z) / 2);
+}
+function fitCamera(){
+  var bb = model.bb, size = Math.max(bb.max.x - bb.min.x, bb.max.y - bb.min.y, bb.max.z - bb.min.z, 3);
+  cam.target.set((bb.min.x + bb.max.x) / 2, (bb.min.y + bb.max.y) / 2, (bb.min.z + bb.max.z) / 2);
+  cam.dist = size * 2.4; cam.min = size * .7; cam.max = size * 9;
+  if (model.parts[0] && model.parts[0].tapestry){ var sz2 = Math.max(bb.max.x - bb.min.x, bb.max.y - bb.min.y); cam.dist = sz2 * 2.1; cam.min = sz2 * .4; cam.max = sz2 * 6; }
+}
+function updateSel(){
+  while (selGroup.children.length){
+    var c = selGroup.children[0]; selGroup.remove(c);
+    if (c.geometry) c.geometry.dispose(); if (c.material) c.material.dispose();
+  }
+  if (tabName !== 'parts' || !model) return;
+  var pm = cache[sel]; if (!pm || !pm.copies) return;
+  pm.copies.forEach(function(cp){
+    var bw = pm.maxR * 2 + pm.w, bh = Math.max(pm.maxZ, pm.w * 2);
+    var g = new THREE.BoxGeometry(bw, bh, bw), e = new THREE.EdgesGeometry(g); g.dispose();
+    var ls = new THREE.LineSegments(e, new THREE.LineBasicMaterial({ color: 0xff2d87, transparent: true, opacity: .85, depthTest: false }));
+    ls.renderOrder = 20;
+    ls.position.set(cp.pos[0], cp.pos[1], cp.pos[2]);
+    ls.rotation.set(cp.rot[0] * D2R, cp.rot[1] * D2R, cp.rot[2] * D2R, 'XYZ');
+    selGroup.add(ls);
+  });
+}
+
+/* ---------------------------------------------------------------- sync */
+function sync(){
+  if (mode === 'tapestry'){ syncTapestry(); return; }
+  var oldTotal = model ? model.total : 0, wasDone = model && placed >= model.total;
+  var pms = [], ids = {};
+  parts.forEach(function(p){
+    var sig = JSON.stringify([p.shape, p.D, p.H, S.stitch, S.spc, S.rpc, S.style, p.stripes, p.stripeN]);
+    var pm = cache[p.id];
+    if (!pm || pm.sig !== sig){
+      if (pm){ disposeMeshes(pm); }
+      pm = generatePart(p); pm.sig = sig; pm.meshSig = null; cache[p.id] = pm;
+    }
+    pm.spec = p; pms.push(pm); ids[p.id] = 1;
+  });
+  Object.keys(cache).forEach(function(id){ if (!ids[id]){ disposeMeshes(cache[id]); delete cache[id]; } });
+
+  if (!pms.length){
+    model = { parts: [], total: 0, legs: 2, inst: 0, bb: { min: new THREE.Vector3(-6, 0, -6), max: new THREE.Vector3(6, 10, 6) } };
+    placed = 0; updateGround();
+    if (needFit){ fitCamera(); needFit = false; }
+    buildPattern(); renderLegend(); updateSel(); setPlaying(false); ui(); afterSync();
+    return;
+  }
+
+  var total = 0, inst = 0;
+  pms.forEach(function(pm){ pm.start = total; total += pm.total; pm.end = total; inst += pm.total * (pm.spec.mirror ? 2 : 1); });
+  var legs = inst > 9000 ? 1 : 2;
+  pms.forEach(function(pm){
+    var p = pm.spec, ts = JSON.stringify([p.x, p.y, p.z, p.rx, p.ry, p.rz, p.mirror, legs]);
+    if (pm.meshSig !== pm.sig + ts || !pm.meshes){ buildPartMeshes(pm, legs); pm.meshSig = pm.sig + ts; }
+  });
+  model = { parts: pms, total: total, legs: legs, inst: inst };
+  updateBounds(); updateGround();
+  if (needFit){ fitCamera(); needFit = false; }
+  buildPattern(); renderLegend(); updateSel();
+  playing = false;
+  placed = (wasDone || oldTotal === 0) ? total : clamp(placed, 0, total);
+  applyColors(); setPlaying(false); ui(); afterSync();
+}
+
+/* --------------------------------------------------------------- UI bits */
+function svg(p, fill){
+  return '<svg viewBox="0 0 24 24" width="20" height="20" fill="' + (fill ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>';
+}
+var IC = {
+  first: svg('<path d="M6 5v14"/><path d="M19 6l-9 6 9 6z"/>'),
+  rowB:  svg('<path d="M12 6l-6 6 6 6"/><path d="M20 6l-6 6 6 6"/>'),
+  stB:   svg('<path d="M15 6l-6 6 6 6"/>'),
+  play:  svg('<path d="M7 5l12 7-12 7z"/>', true),
+  pause: svg('<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>', true),
+  stF:   svg('<path d="M9 6l6 6-6 6"/>'),
+  rowF:  svg('<path d="M4 6l6 6-6 6"/><path d="M12 6l6 6-6 6"/>'),
+  last:  svg('<path d="M18 5v14"/><path d="M5 6l9 6-9 6z"/>')
+};
+var bFirst = $('#bFirst'), bRowBack = $('#bRowBack'), bStBack = $('#bStBack'), bPlay = $('#bPlay'),
+    bStFwd = $('#bStFwd'), bRowFwd = $('#bRowFwd'), bLast = $('#bLast');
+bFirst.innerHTML = IC.first; bStBack.innerHTML = IC.stB; bStFwd.innerHTML = IC.stF; bLast.innerHTML = IC.last;
+bRowBack.innerHTML = IC.rowB + '<span>Round</span>'; bRowFwd.innerHTML = '<span>Round</span>' + IC.rowF;
+
+function typeName(t){
+  var ST = STITCH[S.stitch];
+  return t === 1 ? 'increase (2 ' + ST.abbr + ' in one stitch)' : t === 2 ? 'decrease (' + ST.abbr + '2tog)' : ST.name.toLowerCase();
+}
+function setPlaying(v){
+  playing = v;
+  bPlay.innerHTML = v ? IC.pause + '<span>Pause</span>' : IC.play + '<span>' + (model && model.total && placed >= model.total ? 'Watch again' : placed > 0 ? 'Resume' : 'Watch it made') + '</span>';
+  acc = 0;
+}
+function setPlaced(n){ placed = clamp(Math.round(n), 0, model.total); applyColors(); ui(); }
+function pn(pm){ return pm.spec.name || 'Part'; }
+function mk(pm){ return pm.spec.mirror ? ' (make 2, shown together)' : ''; }
+
+function ui(){
+  if (!model) return;
+  var T = model.total, Ps = model.parts;
+  var emp = $('#emptyMsg'); if (emp) emp.hidden = Ps.length > 0;
+  if (!Ps.length){
+    $('#bRound').textContent = 'Blank canvas'; $('#bSub').textContent = '0 stitches, 0 parts';
+    $('#nKey').textContent = 'Nothing to crochet yet';
+    $('#nIns').textContent = 'Add your first part';
+    $('#nNext').textContent = 'Choose a shape on the Parts tab, or start from a template.';
+    var sc0 = $('#scrub'); sc0.max = 0; sc0.value = 0; sc0.style.setProperty('--fill', '0%');
+    bFirst.disabled = bRowBack.disabled = bStBack.disabled = bStFwd.disabled = bRowFwd.disabled = bLast.disabled = bPlay.disabled = true;
+    return;
+  }
+  bPlay.disabled = false;
+  var scrub = $('#scrub'); scrub.max = T; scrub.value = placed;
+  scrub.style.setProperty('--fill', (T ? placed / T * 100 : 0) + '%');
+
+  var key = $('#nKey'), ins = $('#nIns'), nx = $('#nNext');
+  if (Ps[0].tapestry) tapUI(Ps[0]); else {
+  if (placed === 0) $('#bRound').textContent = 'Not started';
+  else if (placed === T) $('#bRound').textContent = 'Finished';
+  else { var ap = Ps[partIndexAt(placed - 1)], al = placed - 1 - ap.start; $('#bRound').textContent = pn(ap) + ': round ' + (ap.sRound[al] + 1) + ' of ' + ap.R; }
+  $('#bSub').textContent = placed + ' of ' + T + ' stitches, ' + Ps.length + (Ps.length === 1 ? ' part' : ' parts');
+
+  if (placed === T){
+    key.textContent = 'All ' + Ps.length + (Ps.length === 1 ? ' part' : ' parts') + ' complete';
+    ins.textContent = Ps.length > 1 ? 'Time to sew it together' : (Ps[0].meta.closed ? 'Close up and finish' : 'Fasten off and weave in the ends');
+    nx.textContent = Ps.length > 1 ? 'Follow the assembly notes in the Pattern tab.' : 'Check the Pattern tab for finishing steps.';
+  } else {
+    var np = Ps[partIndexAt(placed)], nl = placed - np.start, nr = np.sRound[nl], rs = nr ? np.roundEnd[nr - 1] : 0, inR = nl - rs;
+    var rd = np.rounds[nr];
+    ins.textContent = rd.text + ' (' + rd.n + ')';
+    if (placed === 0) key.textContent = pn(np) + mk(np) + ', round 1 of ' + np.R;
+    else if (inR === 0 && nl === 0) key.textContent = pn(Ps[partIndexAt(placed - 1)]) + ' complete. Next part: ' + pn(np) + mk(np) + ', round 1 of ' + np.R;
+    else if (inR === 0) key.textContent = pn(np) + ', round ' + nr + ' complete. Next up, round ' + (nr + 1) + ' of ' + np.R;
+    else key.textContent = pn(np) + mk(np) + ', round ' + (nr + 1) + ' of ' + np.R + ', stitch ' + inR + ' of ' + rd.n;
+    nx.innerHTML = placed === 0 ? 'Press <strong>Watch it made</strong> or step forward to begin.'
+      : 'Next stitch: <strong>' + typeName(np.sType[nl]) + '</strong>' + (rd.note && inR > 0 ? '. ' + rd.note : '');
+  }
+  }
+
+  bFirst.disabled = bRowBack.disabled = bStBack.disabled = placed === 0;
+  bStFwd.disabled = bRowFwd.disabled = bLast.disabled = placed === T;
+  if (!playing) setPlaying(false);
+
+  var activePi = placed > 0 ? partIndexAt(placed - 1) : -1;
+  var curRound = placed > 0 ? Ps[activePi].sRound[placed - 1 - Ps[activePi].start] + 1 : 0;
+  document.querySelectorAll('#patternOut .rounds li[data-from]').forEach(function(li){
+    var pi = +li.dataset.part, f = +li.dataset.from, t = +li.dataset.to, pm = Ps[pi]; if (!pm) return;
+    li.classList.toggle('on', placed > 0 && placed < T && pi === activePi && curRound >= f && curRound <= t);
+    li.classList.toggle('done', placed - pm.start >= pm.roundEnd[t - 1]);
+  });
+  if (mode === 'tapestry') tapDraw();
+}
+
+function rowFwd(){
+  if (placed >= model.total) return;
+  var pm = model.parts[partIndexAt(placed)], l = placed - pm.start;
+  setPlaced(pm.start + pm.roundEnd[pm.sRound[l]]);
+}
+function rowBack(){
+  if (placed === 0) return;
+  var pm = model.parts[partIndexAt(placed - 1)], r = pm.sRound[placed - 1 - pm.start];
+  setPlaced(pm.start + (r ? pm.roundEnd[r - 1] : 0));
+}
+bStFwd.onclick = function(){ setPlaying(false); setPlaced(placed + 1); };
+bStBack.onclick = function(){ setPlaying(false); setPlaced(placed - 1); };
+bRowFwd.onclick = function(){ setPlaying(false); rowFwd(); };
+bRowBack.onclick = function(){ setPlaying(false); rowBack(); };
+bFirst.onclick = function(){ setPlaying(false); setPlaced(0); };
+bLast.onclick = function(){ setPlaying(false); setPlaced(model.total); };
+bPlay.onclick = function(){
+  if (!model.total) return;
+  if (playing){ setPlaying(false); return; }
+  if (placed >= model.total) setPlaced(0);
+  setPlaying(true); ui();
+};
+$('#scrub').addEventListener('input', function(){ setPlaying(false); setPlaced(+this.value); });
+$('#speed').addEventListener('input', function(){ S.speed = speedFromSlider(+this.value); $('#oSpeed').textContent = S.speed + ' sts/sec'; });
+
+document.addEventListener('keydown', function(e){
+  var t = e.target.tagName; if (t === 'INPUT' || t === 'SELECT' || t === 'TEXTAREA') return;
+  var k = e.key, used = true;
+  if (k === 'ArrowRight'){ setPlaying(false); setPlaced(placed + 1); }
+  else if (k === 'ArrowLeft'){ setPlaying(false); setPlaced(placed - 1); }
+  else if (k === 'ArrowUp'){ setPlaying(false); rowFwd(); }
+  else if (k === 'ArrowDown'){ setPlaying(false); rowBack(); }
+  else if (k === ' ' && t !== 'BUTTON'){ bPlay.click(); }
+  else if (k === 'Home'){ bFirst.click(); }
+  else if (k === 'End'){ bLast.click(); }
+  else used = false;
+  if (used) e.preventDefault();
+});
+
+var btnSpin = $('#btnSpin');
+btnSpin.setAttribute('aria-pressed', S.auto);
+btnSpin.onclick = function(){ S.auto = !S.auto; btnSpin.setAttribute('aria-pressed', S.auto); };
+$('#btnView').onclick = function(){ if (mode === 'tapestry'){ cam.az = 0; cam.pol = 1.45; } else { cam.az = .75; cam.pol = 1.12; } if (model) fitCamera(); };
+
+function renderLegend(){
+  $('#legend').innerHTML = '<span><i style="background:var(--hook)"></i>Current stitch</span>' +
+    (S.hilite ? '<span><i style="background:var(--inc)"></i>Increase</span><span><i style="background:var(--dec)"></i>Decrease</span>' : '');
+}
+
+/* -------------------------------------------------------------- schedule */
+var timer = null;
+function schedule(fit){ if (fit) needFit = true; clearTimeout(timer); timer = setTimeout(sync, 80); }
+
+/* ---------------------------------------------------------- parts editor */
+function getSel(){ for (var i = 0; i < parts.length; i++) if (parts[i].id === sel) return parts[i]; return null; }
+function idxOf(id){ for (var i = 0; i < parts.length; i++) if (parts[i].id === id) return i; return -1; }
+
+function renderParts(){
+  var ul = $('#partList'); ul.innerHTML = '';
+  if (!parts.length){ ul.innerHTML = '<li class="note" style="margin:0">No parts yet. Choose a shape below to add your first one.</li>'; return; }
+  parts.forEach(function(p){
+    var li = document.createElement('li'), b = document.createElement('button');
+    b.className = 'partrow'; b.setAttribute('aria-pressed', p.id === sel);
+    b.innerHTML = '<i style="background:' + esc(p.color) + '"></i><b>' + esc(p.name || 'Part') + '</b><span>' + SHAPES[p.shape].name + (p.mirror ? ', ×2' : '') + '</span>';
+    b.onclick = function(){ sel = p.id; renderParts(); renderEditor(); updateSel(); };
+    li.appendChild(b); ul.appendChild(li);
+  });
+}
+
+function sliderHTML(id, label, min, max, step){
+  return '<div class="field" id="f-' + id + '"><label for="e-' + id + '">' + label + ' <output id="o-' + id + '"></output></label>' +
+    '<input type="range" id="e-' + id + '" min="' + min + '" max="' + max + '" step="' + step + '"></div>';
+}
+function setFill(el){ var mn = +el.min, mx = +el.max; el.style.setProperty('--fill', ((+el.value - mn) / (mx - mn) * 100) + '%'); }
+
+function renderEditor(){
+  var ed = $('#editor'), p = getSel();
+  ed.hidden = !p;
+  if (!p){ ed.innerHTML = ''; return; }
+  var meta = SHAPES[p.shape], idx = idxOf(p.id);
+  var h = '<h3>Edit part</h3>' +
+    '<div class="edhead">' +
+      '<button class="chip" id="ed-up"' + (idx === 0 ? ' disabled' : '') + '>Make earlier</button>' +
+      '<button class="chip" id="ed-down"' + (idx === parts.length - 1 ? ' disabled' : '') + '>Make later</button>' +
+      '<button class="chip" id="ed-dup">Duplicate</button>' +
+      '<button class="chip" id="ed-del">Delete</button>' +
+    '</div>' +
+    '<div class="field"><label for="e-name">Name</label><input class="txt" id="e-name" type="text" maxlength="32" value="' + esc(p.name) + '"></div>' +
+    '<div class="sub">Shape</div><div class="shapesel" id="e-shapes"></div>' +
+    sliderHTML('D', 'Width', 1.5, 30, 0.5) +
+    sliderHTML('H', 'Height', 1.5, 40, 0.5) +
+    '<div class="sub">Position of its centre</div>' +
+    sliderHTML('x', 'Left and right', -30, 30, 0.5) +
+    sliderHTML('y', 'Up and down', -5, 45, 0.5) +
+    sliderHTML('z', 'Back and front', -30, 30, 0.5) +
+    '<div class="sub">Rotation</div>' +
+    sliderHTML('rx', 'Tilt forward or back', -180, 180, 5) +
+    sliderHTML('ry', 'Turn left or right', -180, 180, 5) +
+    sliderHTML('rz', 'Lean sideways', -180, 180, 5) +
+    '<div class="row"><label class="chk"><input type="checkbox" id="e-mirror"> Make a mirrored pair (left and right)</label></div>' +
+    '<p class="note">Each part starts at its bottom pole or ring and is worked upward. Position is measured from the middle of the part, and a mirrored pair is placed on both sides of the centre line.</p>' +
+    '<div class="sub">Colour</div><div class="swatches" id="e-sw"></div>' +
+    '<div class="row"><label class="chk"><input type="checkbox" id="e-stripes"> Stripes</label>' +
+      '<span id="e-stripeCtl" style="display:none;align-items:center;gap:10px"><span>every</span><input type="range" id="e-stripeN" min="1" max="8" step="1" style="width:100px" aria-label="Rounds per stripe"><output id="o-stripeN"></output><input type="color" id="e-c2" aria-label="Second colour"></span></div>';
+  ed.innerHTML = h;
+
+  var sh = $('#e-shapes');
+  Object.keys(SHAPES).forEach(function(id){
+    var b = document.createElement('button'); b.textContent = SHAPES[id].name; b.setAttribute('aria-pressed', id === p.shape);
+    b.onclick = function(){
+      p.shape = id; var m = SHAPES[id];
+      if (m.hf) p.H = clamp(Math.round(p.D * m.hf * 2) / 2, 1.5, 40);
+      renderEditor(); renderParts(); schedule();
+    };
+    sh.appendChild(b);
+  });
+
+  var fmts = { D: ' cm', H: ' cm', x: ' cm', y: ' cm', z: ' cm', rx: '°', ry: '°', rz: '°' };
+  ['D', 'H', 'x', 'y', 'z', 'rx', 'ry', 'rz'].forEach(function(k){
+    var el = $('#e-' + k), out = $('#o-' + k);
+    el.value = p[k]; out.textContent = fmt(p[k]) + fmts[k]; setFill(el);
+    el.addEventListener('input', function(){ p[k] = +el.value; out.textContent = fmt(p[k]) + fmts[k]; setFill(el); schedule(); });
+  });
+  $('#f-H').hidden = !meta.usesH;
+
+  $('#e-name').addEventListener('input', function(){ p.name = this.value; renderParts(); schedule(); });
+  var mir = $('#e-mirror'); mir.checked = p.mirror;
+  mir.addEventListener('change', function(){ p.mirror = this.checked; renderParts(); schedule(); });
+
+  var swEl = $('#e-sw');
+  SWATCHES.forEach(function(c){
+    var b = document.createElement('button'); b.className = 'sw'; b.style.background = c; b.setAttribute('aria-label', 'Colour ' + c); b.setAttribute('aria-pressed', c === p.color);
+    b.onclick = function(){ p.color = c; renderEditor(); renderParts(); schedule(); };
+    swEl.appendChild(b);
+  });
+  var cust = document.createElement('input'); cust.type = 'color'; cust.value = p.color; cust.setAttribute('aria-label', 'Custom colour');
+  cust.oninput = function(){ p.color = this.value; renderParts(); schedule(); };
+  swEl.appendChild(cust);
+
+  var st = $('#e-stripes'), sc = $('#e-stripeCtl'), sn = $('#e-stripeN'), so = $('#o-stripeN'), c2 = $('#e-c2');
+  st.checked = p.stripes; sc.style.display = p.stripes ? 'inline-flex' : 'none';
+  sn.value = p.stripeN; setFill(sn); so.textContent = p.stripeN + (p.stripeN === 1 ? ' round' : ' rounds'); c2.value = p.color2;
+  st.addEventListener('change', function(){ p.stripes = this.checked; sc.style.display = p.stripes ? 'inline-flex' : 'none'; schedule(); });
+  sn.addEventListener('input', function(){ p.stripeN = +sn.value; setFill(sn); so.textContent = p.stripeN + (p.stripeN === 1 ? ' round' : ' rounds'); schedule(); });
+  c2.addEventListener('input', function(){ p.color2 = this.value; schedule(); });
+
+  $('#ed-up').onclick = function(){ var i = idxOf(p.id); if (i > 0){ parts.splice(i, 1); parts.splice(i - 1, 0, p); renderParts(); renderEditor(); schedule(); } };
+  $('#ed-down').onclick = function(){ var i = idxOf(p.id); if (i < parts.length - 1){ parts.splice(i, 1); parts.splice(i + 1, 0, p); renderParts(); renderEditor(); schedule(); } };
+  $('#ed-dup').onclick = function(){
+    var c = mkPart(JSON.parse(JSON.stringify(p))); c.id = 'p' + (nextId++); c.name = p.name + ' copy'; c.x = p.x + (p.mirror ? 0 : 3); 
+    parts.splice(idxOf(p.id) + 1, 0, c); sel = c.id; renderParts(); renderEditor(); schedule();
+  };
+  $('#ed-del').onclick = function(){
+    var i = idxOf(p.id);
+    parts.splice(i, 1); sel = parts.length ? parts[Math.min(i, parts.length - 1)].id : null; renderParts(); renderEditor(); schedule(true);
+  };
+}
+
+/* add-part grid */
+(function(){
+  var g = $('#addGrid');
+  Object.keys(SHAPES).forEach(function(id){
+    var m = SHAPES[id], b = document.createElement('button');
+    b.innerHTML = m.name + '<small>' + m.desc + '</small>';
+    b.onclick = function(){
+      var D = id === 'disc' || id === 'sphere' ? 6 : 5;
+      var p = mkPart({ name: m.name, shape: id, D: D, H: m.hf ? Math.round(D * m.hf * 2) / 2 : 6, color: SWATCHES[parts.length % SWATCHES.length] });
+      var tmp = generatePart(p), top = (model && model.parts.length) ? model.bb.max.y : 0, half = tmp.maxZ / 2;
+      p.y = Math.round((top + half + 0.2) * 2) / 2;
+      parts.push(p); sel = p.id; renderParts(); renderEditor(); schedule(true);
+    };
+    g.appendChild(b);
+  });
+})();
+$('#emptyAdd').onclick = function(){ $('#addGrid button').click(); };
+
+/* presets */
+(function(){
+  var c = $('#presetChips');
+  Object.keys(PRESETS).forEach(function(id){
+    var b = document.createElement('button'); b.className = 'chip'; b.textContent = PRESETS[id].label;
+    b.onclick = function(){ loadPreset(id); };
+    c.appendChild(b);
+  });
+})();
+var savedId = null, STORE_KEY = 'stitchstudio.projects.v1', storeOK = true;
+function readStore(){ try { var r = localStorage.getItem(STORE_KEY); return r ? JSON.parse(r) : []; } catch (e) { storeOK = false; return []; } }
+function writeStore(l){ try { localStorage.setItem(STORE_KEY, JSON.stringify(l)); return true; } catch (e) { storeOK = false; return false; } }
+function snapshot(id){
+  if (mode === 'tapestry') return { id: id, type: 'tapestry', name: projectName || 'Untitled tapestry', stitch: S.stitch, spc: S.spc, rpc: S.rpc, style: S.style,
+    cols: TAP.cols, rows: TAP.rows, palette: TAP.palette.slice(), k: TAP.k, dither: TAP.dither, grid: gridStr(), updated: Date.now() };
+  return { id: id, name: projectName || 'Untitled project', stitch: S.stitch, spc: S.spc, rpc: S.rpc, style: S.style,
+           nextId: nextId, parts: JSON.parse(JSON.stringify(parts)), updated: Date.now() };
+}
+function findSaved(list){ for (var k = 0; k < list.length; k++) if (list[k].id === savedId) return k; return -1; }
+function saveProject(){
+  if (mode === 'shapes' && !parts.length) return;
+  var list = readStore(), i = savedId ? findSaved(list) : -1;
+  if (i < 0){ savedId = 'pr' + Date.now().toString(36); list.unshift(snapshot(savedId)); } else list[i] = snapshot(savedId);
+  writeStore(list); updateSaveUI(); renderProjects();
+}
+function autoSave(){
+  if (!savedId || (mode === 'shapes' && !parts.length)) return;
+  var list = readStore(), i = findSaved(list);
+  if (i >= 0){ list[i] = snapshot(savedId); writeStore(list); renderProjects(); }
+}
+function afterSync(){ autoSave(); updateSaveUI(); }
+function updateSaveUI(){
+  var empty = mode === 'shapes' && !parts.length;
+  document.querySelectorAll('.btnSave').forEach(function(b){ b.disabled = empty; b.textContent = savedId ? 'Saved' : 'Save project'; });
+  var msg = !storeOK ? 'Saving is not available in this browser view.'
+    : empty ? 'A blank project is not saved until it has a part.'
+    : savedId ? 'Saved on this device. Further changes are kept automatically.'
+    : 'Not saved yet. Save it to keep it on this device.';
+  document.querySelectorAll('.saveStatus').forEach(function(st){ st.textContent = msg; });
+}
+function renderProjects(){
+  var list = readStore();
+  document.querySelectorAll('.projlist').forEach(function(ul){
+    ul.innerHTML = '';
+    if (!list.length){ ul.innerHTML = '<li class="note" style="margin:0">' + (storeOK ? 'Projects you save will appear here.' : 'Saving is not available in this browser view.') + '</li>'; return; }
+    list.forEach(function(pr){
+      var li = document.createElement('li'); li.className = 'projrow';
+      var b = document.createElement('button'); b.className = 'partrow'; b.setAttribute('aria-pressed', pr.id === savedId);
+      var n = pr.parts ? pr.parts.length : 0;
+      var label = pr.type === 'tapestry' ? 'Tapestry ' + pr.cols + '×' + pr.rows : n + (n === 1 ? ' part' : ' parts');
+      b.innerHTML = '<b>' + esc(pr.name) + '</b><span>' + label + ', ' + new Date(pr.updated).toLocaleDateString() + '</span>';
+      b.onclick = function(){ loadProject(pr.id); };
+      var d = document.createElement('button'); d.className = 'chip'; d.textContent = 'Delete'; d.setAttribute('aria-label', 'Delete ' + pr.name);
+      d.onclick = function(){
+        var l2 = readStore().filter(function(x){ return x.id !== pr.id; }); writeStore(l2);
+        if (savedId === pr.id) savedId = null; renderProjects(); updateSaveUI();
+      };
+      li.appendChild(b); li.appendChild(d); ul.appendChild(li);
+    });
+  });
+}
+function resetCache(){ Object.keys(cache).forEach(function(k){ disposeMeshes(cache[k]); delete cache[k]; }); }
+function startProject(list, name){
+  resetCache(); parts = list; sel = parts.length ? parts[0].id : null; projectName = name; $('#pname').value = name;
+  savedId = null; placed = 0; model = null;
+  renderParts(); renderEditor(); cam.az = .75; cam.pol = 1.12;
+  needFit = true; clearTimeout(timer); sync(); renderProjects();
+}
+function newProject(){ startProject([], 'Untitled project'); }
+function loadPreset(id){ var pr = PRESETS[id]; startProject(pr.build(), pr.name); }
+function loadProject(id){
+  var snap = readStore().filter(function(x){ return x.id === id; })[0]; if (!snap) return;
+  S.stitch = snap.stitch || 'sc'; S.spc = snap.spc || 20; S.rpc = snap.rpc || 22; S.style = snap.style || 'classic';
+  if (snap.type === 'tapestry'){
+    if (mode !== 'tapestry') setMode('tapestry', true);
+    syncSettings();
+    TAP.src = null; TAP.srcName = ''; TAP.cols = snap.cols; TAP.rows = snap.rows; TAP.palette = snap.palette.slice(); TAP.k = snap.k || 6; TAP.dither = !!snap.dither;
+    TAP.grid = new Uint8Array(snap.cols * snap.rows);
+    for (var i = 0; i < TAP.grid.length; i++) TAP.grid[i] = Math.min(TAP.palette.length - 1, Math.max(0, snap.grid.charCodeAt(i) - 48));
+    TAP.gc = snap.cols; TAP.gr = snap.rows; TAP.cur = Math.min(1, TAP.palette.length - 1); TAP.undo = [];
+    projectName = snap.name; $('#tname').value = snap.name;
+    disposeTap(); placed = 0; model = null; tapResizeCanvas(); syncTapControls(); needFit = true; sync();
+    savedId = id; updateSaveUI(); renderProjects(); return;
+  }
+  if (mode !== 'shapes') setMode('shapes', true);
+  syncSettings();
+  nextId = Math.max(nextId, snap.nextId || 1);
+  startProject(snap.parts, snap.name);
+  savedId = id; updateSaveUI(); renderProjects();
+}
+document.querySelectorAll('.btnSave').forEach(function(b){ b.onclick = saveProject; });
+document.querySelectorAll('.btnNew').forEach(function(b){ b.onclick = function(){ if (mode === 'tapestry') newTapestry(); else newProject(); }; });
+$('#pname').addEventListener('input', function(){ projectName = this.value; schedule(); });
+
+/* ------------------------------------------------------------- settings */
+(function(){
+  var seg = $('#stitchSeg');
+  Object.keys(STITCH).forEach(function(id){
+    var b = document.createElement('button'); b.dataset.id = id; b.textContent = STITCH[id].abbr;
+    b.title = STITCH[id].name;
+    b.onclick = function(){ S.stitch = id; syncSettings(); schedule(); };
+    seg.appendChild(b);
+  });
+  var gc = $('#gaugeChips');
+  GAUGES.forEach(function(g){
+    var b = document.createElement('button'); b.className = 'chip'; b.textContent = g.n; b.dataset.n = g.n;
+    b.onclick = function(){ S.spc = g.spc; S.rpc = g.rpc; syncSettings(); schedule(); };
+    gc.appendChild(b);
+  });
+})();
+$('#spc').addEventListener('input', function(){ S.spc = +this.value; syncSettings(); schedule(); });
+$('#rpc').addEventListener('input', function(){ S.rpc = +this.value; syncSettings(); schedule(); });
+$('#hilite').addEventListener('change', function(){ S.hilite = this.checked; renderLegend(); applyColors(); });
+document.querySelectorAll('#styleSeg button').forEach(function(b){
+  b.onclick = function(){ S.style = b.dataset.v; syncSettings(); schedule(); };
+});
+function syncSettings(){
+  var ST = STITCH[S.stitch];
+  $('#spc').value = S.spc; $('#rpc').value = S.rpc; setFill($('#spc')); setFill($('#rpc'));
+  $('#oSpc').textContent = S.spc; $('#oRpc').textContent = S.rpc;
+  $('#hilite').checked = S.hilite;
+  document.querySelectorAll('#stitchSeg button').forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.id === S.stitch); });
+  document.querySelectorAll('#gaugeChips .chip').forEach(function(b){
+    var g = GAUGES.filter(function(x){ return x.n === b.dataset.n; })[0];
+    b.setAttribute('aria-pressed', g.spc === S.spc && g.rpc === S.rpc);
+  });
+  document.querySelectorAll('#styleSeg button').forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.v === S.style); });
+  var hmm = 100 / (S.rpc / ST.hf);
+  if (mode === 'tapestry') $('#stitchNote').textContent = ST.name + ' (' + ST.abbr + '): each row is about ' + fmt(hmm, 1) + ' mm tall. Tapestry crochet is usually worked in single crochet, which gives the sharpest, squarest pixels.';
+  else $('#stitchNote').textContent = ST.name + ' (' + ST.abbr + '): each round is about ' + fmt(hmm, 1) + ' mm tall. Rounds start with ' + ST.base + ' ' + ST.abbr + ' in a magic ring, so counts grow in steps of ' + ST.base + ' in Classic mode.';
+}
+
+/* tabs */
+function tab(which){
+  tabName = which;
+  var map = { parts: ['tabParts', 'paneParts'], image: ['tabImage', 'paneImage'], chart: ['tabChart', 'paneChart'], set: ['tabSet', 'paneSet'], pat: ['tabPat', 'panePat'] };
+  Object.keys(map).forEach(function(k){
+    $('#' + map[k][0]).setAttribute('aria-selected', k === which);
+    $('#' + map[k][1]).hidden = k !== which;
+  });
+  updateSel(); if (which === 'chart') tapDraw();
+}
+$('#tabParts').onclick = function(){ tab('parts'); };
+$('#tabImage').onclick = function(){ tab('image'); };
+$('#tabChart').onclick = function(){ tab('chart'); };
+$('#tabSet').onclick = function(){ tab('set'); };
+$('#tabPat').onclick = function(){ tab('pat'); };
+
+/* --------------------------------------------------------------- pattern */
+function describeOffset(dx, dy, dz, mirror){
+  var bits = [];
+  if (mirror) bits.push(fmt(Math.abs(dx)) + ' cm out to each side');
+  else if (Math.abs(dx) >= .5) bits.push(fmt(Math.abs(dx)) + ' cm to the ' + (dx > 0 ? 'right' : 'left'));
+  if (Math.abs(dy) >= .5) bits.push(fmt(Math.abs(dy)) + ' cm ' + (dy > 0 ? 'above' : 'below'));
+  if (Math.abs(dz) >= .5) bits.push(fmt(Math.abs(dz)) + ' cm ' + (dz > 0 ? 'in front of' : 'behind'));
+  return bits.length ? bits.join(', ') : 'right at';
+}
+
+function buildPattern(){
+  if (!model.parts.length){ $('#patternOut').innerHTML = '<div class="ptitle">Pattern</div><p class="note">Your pattern will appear here as you add parts on the Parts tab.</p>'; return; }
+  var m = model, ST = STITCH[S.stitch], ab = ST.abbr, multi = m.parts.length > 1;
+  var w = 10 / S.spc, T = 0, rounds = 0, pieces = 0, colour = {};
+  m.parts.forEach(function(pm){
+    var cp = pm.spec.mirror ? 2 : 1; T += pm.total * cp; rounds += pm.R * cp; pieces += cp;
+    pm.rounds.forEach(function(r, i){
+      var hex = r.color ? pm.spec.color2 : pm.spec.color;
+      colour[hex] = (colour[hex] || 0) + r.n * cp * 8 * w / 100 * 1.1 * (0.6 + 0.4 * ST.hf);
+    });
+  });
+  var yarnM = 0; Object.keys(colour).forEach(function(k){ yarnM += colour[k]; });
+  var yarnWeight = S.spc >= 26 ? 'Fingering (3 ply)' : S.spc >= 21 ? 'Sport or DK' : S.spc >= 16 ? 'Worsted or aran' : 'Bulky';
+  var hook = fmt(Math.round(62 / S.spc * 4) / 4, 2);
+  var anyClosed = m.parts.some(function(pm){ return pm.meta.closed; });
+  var title = projectName || 'My project';
+  var bb = m.bb, sizeTxt = 'about ' + fmt(bb.max.x - bb.min.x) + ' cm wide, ' + fmt(bb.max.y - bb.min.y) + ' cm tall and ' + fmt(bb.max.z - bb.min.z) + ' cm deep';
+
+  var text = [title.toUpperCase(), 'Finished size: ' + sizeTxt + '. Stitch: US ' + ST.name.toLowerCase() + ' (' + ab + '). Gauge: ' + S.spc + ' sc and ' + S.rpc + ' sc rounds per 10 cm.', '',
+    'MATERIALS', yarnWeight + ' yarn, about ' + fmt(yarnM) + ' m in total'];
+  var html = '<div class="ptitle">' + esc(title) + '</div>' +
+    '<p class="note" style="margin-top:0">Finished size: ' + esc(sizeTxt) + '. Worked in US ' + esc(ST.name.toLowerCase()) + '.</p>' +
+    '<div class="stats">' +
+      '<div class="stat"><b>' + m.parts.length + '</b>' + (m.parts.length === 1 ? 'part' : 'parts') + (pieces !== m.parts.length ? ' (' + pieces + ' pieces)' : '') + '</div>' +
+      '<div class="stat"><b>' + rounds + '</b>rounds</div>' +
+      '<div class="stat"><b>' + T + '</b>stitches</div>' +
+      '<div class="stat"><b>~' + fmt(yarnM) + ' m</b>yarn</div>' +
+    '</div>';
+  if (m.legs === 1) html += '<div class="warn">This is a big project, so the 3D view uses simplified stitches to stay smooth.</div>';
+  html += '<div class="pblock"><h4>Materials</h4><ul>' +
+    '<li>' + esc(yarnWeight) + ' yarn. Estimated amounts:</li>';
+  Object.keys(colour).forEach(function(hex){
+    html += '<li style="list-style:none;margin-left:-4px"><span class="ydot" style="background:' + esc(hex) + '"></span>about ' + fmt(colour[hex]) + ' m</li>';
+    text.push('  ' + hex + ': about ' + fmt(colour[hex]) + ' m');
+  });
+  html += '<li>Hook: about ' + hook + ' mm. Go down a size if your fabric looks loose.</li>' +
+    '<li>' + (anyClosed ? 'Stitch marker, fibrefill, yarn needle, scissors' : 'Stitch marker, yarn needle, scissors') + '</li></ul>';
+  text.push('Hook: about ' + hook + ' mm', anyClosed ? 'Stitch marker, fibrefill, yarn needle, scissors' : 'Stitch marker, yarn needle, scissors', '', 'NOTES');
+
+  var abbrNote = 'US terms. ' + ab + ' = ' + ST.name.toLowerCase() + ', inc = 2 ' + ab + ' in the same stitch, dec = ' + ab + '2tog, ' + ab + ' N = ' + ab + ' in the next N stitches, [ ] ×N = repeat N times. The number in brackets is the stitch count.';
+  var spiral = 'Parts are worked in a continuous spiral. Mark the first stitch of each round and move the marker up as you go.' + (ST.hf > 1 ? ' With taller stitches you may prefer joined rounds: slip stitch to the first stitch and chain ' + (ab === 'hdc' ? '2' : ab === 'dc' ? '3' : '4') + ' to start each round.' : '');
+  html += '<h4>Notes</h4><ul><li>' + esc(spiral) + '</li><li>' + esc(abbrNote) + '</li></ul>';
+  text.push(spiral, abbrNote);
+
+  m.parts.forEach(function(pm, pi){
+    var p = pm.spec, cp = p.mirror ? 2 : 1;
+    var psize = pm.meta.flat || p.shape === 'disc' ? 'about ' + fmt(pm.maxR * 2) + ' cm across, worked flat' : 'about ' + fmt(pm.maxR * 2) + ' cm wide and ' + fmt(pm.maxZ) + ' cm long';
+    var head = (pi + 1) + '. ' + (p.name || 'Part') + (cp > 1 ? ' (make 2)' : '');
+    html += '<div class="partwrap pblock"><h4>' + esc(head) + '</h4><p class="note" style="margin:0 0 8px">' + esc(SHAPES[p.shape].name + ', ' + psize) + '</p><ol class="rounds">';
+    text.push('', head.toUpperCase(), SHAPES[p.shape].name + ', ' + psize);
+    pm.lines.forEach(function(l){
+      var label = l.from === l.to ? 'Rnd ' + l.from : 'Rnds ' + l.from + '–' + l.to;
+      var body = l.from === l.to ? l.text : ab + ' in each st around';
+      var pre = l.change ? 'Change to colour ' + (l.color ? 'B' : 'A') + '. ' : '';
+      html += '<li data-part="' + pi + '" data-from="' + l.from + '" data-to="' + l.to + '"><button type="button"><span class="rn">' + label + ':</span> ' + esc(pre + body) + ' <span class="cnt">(' + l.n + ')</span></button></li>';
+      text.push(label + ': ' + pre + body + ' (' + l.n + ')');
+      if (l.note){ html += '<li class="msg">' + esc(l.note) + '</li>'; text.push(l.note); }
+    });
+    var fin = pm.meta.closed
+      ? 'Fasten off, leaving a long tail. Thread the tail through the front loops of the last ' + pm.B + ' stitches, pull tight to close, then ' + (multi ? 'use the tail to sew it on.' : 'weave in the end.')
+      : (multi ? 'Fasten off, leaving a long tail for sewing.' : 'Slip stitch into the next stitch, fasten off and weave in the ends.');
+    html += '</ol><p style="margin:8px 0 0;font-size:14px">' + esc(fin) + '</p></div>';
+    text.push(fin);
+  });
+
+  if (multi){
+    html += '<div class="partwrap pblock"><h4>Assembly</h4><ul>';
+    text.push('', 'ASSEMBLY');
+    m.parts.forEach(function(pm, pi){
+      if (pi === 0) return;
+      var p = pm.spec, best = 0, bd = 1e9, j;
+      for (j = 0; j < pi; j++){
+        var q = m.parts[j].spec, d = Math.hypot(p.x - q.x, p.y - q.y, p.z - q.z);
+        if (d < bd){ bd = d; best = j; }
+      }
+      var q = m.parts[best].spec;
+      var s = 'Sew ' + (p.name || 'part') + (p.mirror ? ' (both)' : '') + ' to the ' + (q.name || 'part') + ', placed ' + describeOffset(p.x - q.x, p.y - q.y, p.z - q.z, p.mirror) + ' its centre.' +
+        ((Math.abs(p.rx) + Math.abs(p.ry) + Math.abs(p.rz)) > 4 ? ' Angle it to match the 3D preview.' : '');
+      html += '<li>' + esc(s) + '</li>'; text.push(s);
+    });
+    html += '</ul></div>';
+  }
+  html += '<button class="copy" id="copyBtn" type="button">Copy pattern as text</button>';
+
+  var out = $('#patternOut'); out.innerHTML = html;
+  out.querySelectorAll('.rounds li[data-from]').forEach(function(li){
+    li.querySelector('button').onclick = function(){
+      var pm = model.parts[+li.dataset.part]; setPlaying(false); setPlaced(pm.start + pm.roundEnd[+li.dataset.to - 1]);
+    };
+  });
+  var plain = text.join('\n');
+  $('#copyBtn').onclick = function(){
+    var btn = this, done = function(){ btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = 'Copy pattern as text'; }, 1600); };
+    function fallback(){
+      var ta = document.createElement('textarea'); ta.value = plain; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) { btn.textContent = 'Copy not available here'; }
+      document.body.removeChild(ta);
+    }
+    try { navigator.clipboard.writeText(plain).then(done, fallback); } catch (e) { fallback(); }
+  };
+}
+
+/* =========================================================== TAPESTRY */
+var mode = 'shapes', autoShapes = S.auto, tapPm = null, rodGroup = null, tapBase = null, tapBaseDirty = true, tapTimer = null, tapRegridTimer = null, tapDirty = false;
+var modeMeta = { shapes: { name: 'Untitled project', savedId: null }, tapestry: { name: 'Untitled tapestry', savedId: null } };
+var TAP = { src: null, srcName: '', cols: 60, rows: 60, gc: 60, gr: 60, k: 6, dither: false, cur: 1, tool: 'paint', brush: 1, zoom: 8, undo: [],
+            palette: ['#f6f1e1', '#1f2a5c', '#3a6fb5', '#9cc3ea', '#f2c94c', '#c9544d'], grid: new Uint8Array(3600) };
+var TURN = { sc: 1, hdc: 2, dc: 3, tr: 4 };
+var GUT = 34;
+function LET(i){ return i < 26 ? String.fromCharCode(65 + i) : 'Z' + (i - 25); }
+function mkCanvas(w, h){ var c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+function speedFromSlider(v){ return Math.max(1, Math.round(Math.pow(10, v / 100 * 3.2))); }
+
+function tapRowsAuto(){
+  var ST = STITCH[S.stitch], w = 10 / S.spc, h = 10 / (S.rpc / ST.hf), a = TAP.src.height / TAP.src.width;
+  return clamp(Math.round(TAP.cols * a * (w / h)), 8, 240);
+}
+function downscale(src, W, H){
+  var cur = src;
+  while (cur.width > W * 2 || cur.height > H * 2){
+    var nw = Math.max(W, Math.ceil(cur.width / 2)), nh = Math.max(H, Math.ceil(cur.height / 2));
+    var c = mkCanvas(nw, nh), g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(cur, 0, 0, nw, nh); cur = c;
+  }
+  var out = mkCanvas(W, H), g2 = out.getContext('2d'); g2.imageSmoothingQuality = 'high'; g2.drawImage(cur, 0, 0, W, H);
+  return out;
+}
+function d2(a, i, b, j){ var x = a[i] - b[j], y = a[i + 1] - b[j + 1], z = a[i + 2] - b[j + 2]; return 2 * x * x + 4 * y * y + 3 * z * z; }
+function hex2(v){ return ('0' + Math.max(0, Math.min(255, Math.round(v))).toString(16)).slice(-2); }
+
+/* k-means colour reduction, optional Floyd-Steinberg dithering */
+function quantize(px, n, k, dither, cols, rows){
+  var seed = 7; function rnd(){ seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
+  var cen = new Float32Array(k * 3), d = new Float32Array(n), i, c, f = Math.floor(rnd() * n);
+  cen[0] = px[f * 3]; cen[1] = px[f * 3 + 1]; cen[2] = px[f * 3 + 2];
+  for (i = 0; i < n; i++) d[i] = 1e12;
+  for (c = 1; c < k; c++){
+    var sum = 0;
+    for (i = 0; i < n; i++){ var dd = d2(px, i * 3, cen, (c - 1) * 3); if (dd < d[i]) d[i] = dd; sum += d[i]; }
+    var t = rnd() * sum, acc = 0, pick = n - 1;
+    for (i = 0; i < n; i++){ acc += d[i]; if (acc >= t){ pick = i; break; } }
+    cen[c * 3] = px[pick * 3]; cen[c * 3 + 1] = px[pick * 3 + 1]; cen[c * 3 + 2] = px[pick * 3 + 2];
+  }
+  var asg = new Uint8Array(n), it;
+  for (it = 0; it < 12; it++){
+    var sums = new Float64Array(k * 3), cnt = new Int32Array(k), changed = 0;
+    for (i = 0; i < n; i++){
+      var best = 0, bd = 1e12;
+      for (c = 0; c < k; c++){ var q = d2(px, i * 3, cen, c * 3); if (q < bd){ bd = q; best = c; } }
+      if (asg[i] !== best){ asg[i] = best; changed++; }
+      sums[best * 3] += px[i * 3]; sums[best * 3 + 1] += px[i * 3 + 1]; sums[best * 3 + 2] += px[i * 3 + 2]; cnt[best]++;
+    }
+    for (c = 0; c < k; c++) if (cnt[c]){ cen[c * 3] = sums[c * 3] / cnt[c]; cen[c * 3 + 1] = sums[c * 3 + 1] / cnt[c]; cen[c * 3 + 2] = sums[c * 3 + 2] / cnt[c]; }
+    if (!changed && it > 0) break;
+  }
+  var order = [];
+  for (c = 0; c < k; c++) order.push(c);
+  function lum(c){ return .3 * cen[c * 3] + .59 * cen[c * 3 + 1] + .11 * cen[c * 3 + 2]; }
+  order.sort(function(a, b){ return lum(a) - lum(b); });
+  var remap = new Uint8Array(k), pal = [], palRGB = [];
+  order.forEach(function(oc, ni){
+    remap[oc] = ni; palRGB.push([cen[oc * 3], cen[oc * 3 + 1], cen[oc * 3 + 2]]);
+    pal.push('#' + hex2(cen[oc * 3]) + hex2(cen[oc * 3 + 1]) + hex2(cen[oc * 3 + 2]));
+  });
+  var idx = new Uint8Array(n);
+  if (!dither){ for (i = 0; i < n; i++) idx[i] = remap[asg[i]]; }
+  else {
+    var buf = new Float32Array(px), x, y;
+    var nearest = function(r, g, b){
+      var best = 0, bd = 1e12;
+      for (var cc = 0; cc < k; cc++){ var p = palRGB[cc], q = 2 * (r - p[0]) * (r - p[0]) + 4 * (g - p[1]) * (g - p[1]) + 3 * (b - p[2]) * (b - p[2]); if (q < bd){ bd = q; best = cc; } }
+      return best;
+    };
+    var push = function(xx, yy, er, eg, eb, wgt){
+      if (xx < 0 || xx >= cols || yy >= rows) return;
+      var j = (yy * cols + xx) * 3; buf[j] += er * wgt; buf[j + 1] += eg * wgt; buf[j + 2] += eb * wgt;
+    };
+    for (y = 0; y < rows; y++) for (x = 0; x < cols; x++){
+      var o = (y * cols + x) * 3, r0 = buf[o], g0 = buf[o + 1], b0 = buf[o + 2], nb = nearest(r0, g0, b0), p2 = palRGB[nb];
+      idx[y * cols + x] = nb;
+      var er = r0 - p2[0], eg = g0 - p2[1], eb = b0 - p2[2];
+      push(x + 1, y, er, eg, eb, 7 / 16); push(x - 1, y + 1, er, eg, eb, 3 / 16); push(x, y + 1, er, eg, eb, 5 / 16); push(x + 1, y + 1, er, eg, eb, 1 / 16);
+    }
+  }
+  return { palette: pal, idx: idx };
+}
+function quantizeSource(){
+  var cols = TAP.cols, rows = TAP.rows, c = downscale(TAP.src, cols, rows), d = c.getContext('2d').getImageData(0, 0, cols, rows).data;
+  var n = cols * rows, px = new Float32Array(n * 3), i;
+  for (i = 0; i < n; i++){
+    var a = d[i * 4 + 3] / 255;
+    px[i * 3] = d[i * 4] * a + 255 * (1 - a); px[i * 3 + 1] = d[i * 4 + 1] * a + 255 * (1 - a); px[i * 3 + 2] = d[i * 4 + 2] * a + 255 * (1 - a);
+  }
+  var res = quantize(px, n, TAP.k, TAP.dither, cols, rows);
+  TAP.palette = res.palette; TAP.grid = new Uint8Array(n);
+  for (var y = 0; y < rows; y++) for (var x = 0; x < cols; x++) TAP.grid[(rows - 1 - y) * cols + x] = res.idx[y * cols + x];
+  TAP.gc = cols; TAP.gr = rows; TAP.cur = Math.min(TAP.cur, TAP.palette.length - 1);
+}
+function resampleGrid(){
+  var oc = TAP.gc, or = TAP.gr, nc = TAP.cols, nr = TAP.rows, og = TAP.grid, ng = new Uint8Array(nc * nr);
+  for (var r = 0; r < nr; r++){
+    var sr = Math.min(or - 1, Math.floor(r * or / nr));
+    for (var c = 0; c < nc; c++) ng[r * nc + c] = og[sr * oc + Math.min(oc - 1, Math.floor(c * oc / nc))];
+  }
+  TAP.grid = ng; TAP.gc = nc; TAP.gr = nr;
+}
+function tapRegrid(){
+  if (TAP.src){ TAP.rows = tapRowsAuto(); quantizeSource(); }
+  else if (TAP.gc !== TAP.cols || TAP.gr !== TAP.rows) resampleGrid();
+  TAP.undo = []; tapBaseDirty = true; tapResizeCanvas(); syncTapControls();
+}
+function tapRegridSoon(){ clearTimeout(tapRegridTimer); tapRegridTimer = setTimeout(function(){ tapRegrid(); needFit = true; sync(); }, 160); }
+
+/* ---------- sample pictures (generated, so nothing needs to be loaded) */
+function makeStarry(){
+  var W = 260, H = 180, c = mkCanvas(W, H), g = c.getContext('2d'), img = g.createImageData(W, H), d = img.data;
+  var pal = [[10, 24, 66], [19, 52, 112], [40, 92, 166], [88, 140, 205], [150, 192, 236]];
+  var ctr = [[.52, .34, 1, 1], [.80, .20, -1, .8], [.24, .40, 1, .7]];
+  for (var y = 0; y < H; y++) for (var x = 0; x < W; x++){
+    var u = x / W, v = y / H, val = .45 + .14 * Math.sin(u * 10 + v * 4) + .07 * Math.sin(v * 17 - u * 6);
+    for (var k = 0; k < 3; k++){
+      var dx = (u - ctr[k][0]) * 1.45, dy = v - ctr[k][1], r = Math.sqrt(dx * dx + dy * dy), a = Math.atan2(dy, dx);
+      val += ctr[k][3] * .36 * Math.sin(r * 28 + ctr[k][2] * 2 * a) * Math.exp(-r * 3);
+    }
+    val = clamp(val, 0, .999);
+    var f = val * (pal.length - 1), i0 = Math.floor(f), t = f - i0, o = (y * W + x) * 4;
+    d[o] = pal[i0][0] + (pal[i0 + 1][0] - pal[i0][0]) * t;
+    d[o + 1] = pal[i0][1] + (pal[i0 + 1][1] - pal[i0][1]) * t;
+    d[o + 2] = pal[i0][2] + (pal[i0 + 1][2] - pal[i0][2]) * t;
+    d[o + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  [[.63, .17, 6.5], [.80, .45, 5], [.40, .09, 5], [.12, .17, 4.6], [.30, .50, 4.4], [.92, .56, 4], [.70, .62, 3.6], [.55, .55, 4.2]].forEach(function(s){
+    var sx = s[0] * W, sy = s[1] * H, R = s[2] * 3.4, gr = g.createRadialGradient(sx, sy, 1, sx, sy, R);
+    gr.addColorStop(0, 'rgba(255,246,190,1)'); gr.addColorStop(.3, 'rgba(255,225,90,.85)'); gr.addColorStop(.6, 'rgba(255,200,60,.3)'); gr.addColorStop(1, 'rgba(255,200,60,0)');
+    g.fillStyle = gr; g.beginPath(); g.arc(sx, sy, R, 0, TAU); g.fill();
+    g.fillStyle = '#fff6c2'; g.beginPath(); g.arc(sx, sy, s[2] * .6, 0, TAU); g.fill();
+  });
+  var mx = W * .88, my = H * .15, mg = g.createRadialGradient(mx, my, 4, mx, my, 30);
+  mg.addColorStop(0, 'rgba(255,230,120,.55)'); mg.addColorStop(1, 'rgba(255,230,120,0)');
+  g.fillStyle = mg; g.beginPath(); g.arc(mx, my, 30, 0, TAU); g.fill();
+  g.fillStyle = '#ffe27a'; g.beginPath(); g.arc(mx, my, 12, 0, TAU); g.fill();
+  g.fillStyle = '#2a5c9f'; g.beginPath(); g.arc(mx + 5, my - 2, 10, 0, TAU); g.fill();
+  g.fillStyle = '#10294f'; g.beginPath(); g.moveTo(0, H * .84);
+  g.quadraticCurveTo(W * .3, H * .72, W * .55, H * .82); g.quadraticCurveTo(W * .8, H * .9, W, H * .78);
+  g.lineTo(W, H); g.lineTo(0, H); g.closePath(); g.fill();
+  g.fillStyle = '#173a6b';
+  [[120, .86, 16, 9], [142, .84, 12, 8], [160, .87, 18, 10], [182, .85, 12, 8], [204, .86, 14, 9]].forEach(function(h){ g.fillRect(h[0], H * h[1], h[2], h[3]); });
+  g.fillStyle = '#f2c94c';
+  [[126, .875], [148, .855], [167, .885], [188, .865], [210, .875]].forEach(function(w){ g.fillRect(w[0], H * w[1], 2, 2); });
+  g.fillStyle = '#0a1a14'; g.beginPath(); g.moveTo(36, H);
+  g.bezierCurveTo(14, H * .72, 28, H * .42, 40, H * .08); g.bezierCurveTo(52, H * .4, 62, H * .72, 46, H);
+  g.closePath(); g.fill();
+  return c;
+}
+function makeSunset(){
+  var W = 260, H = 180, c = mkCanvas(W, H), g = c.getContext('2d');
+  var gr = g.createLinearGradient(0, 0, 0, H);
+  gr.addColorStop(0, '#1f1a4d'); gr.addColorStop(.3, '#6b2f86'); gr.addColorStop(.55, '#d9487b'); gr.addColorStop(.75, '#f59e42'); gr.addColorStop(.9, '#ffd56b');
+  g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  var sg = g.createRadialGradient(W * .5, H * .7, 4, W * .5, H * .7, 70);
+  sg.addColorStop(0, 'rgba(255,244,190,.95)'); sg.addColorStop(.3, 'rgba(255,210,120,.5)'); sg.addColorStop(1, 'rgba(255,180,90,0)');
+  g.fillStyle = sg; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#fff3b8'; g.beginPath(); g.arc(W * .5, H * .7, 22, 0, TAU); g.fill();
+  var cols = ['#5b2a6e', '#3a1f5c', '#1e1442'];
+  for (var i = 0; i < 3; i++){
+    g.fillStyle = cols[i]; g.beginPath(); g.moveTo(0, H);
+    for (var x = 0; x <= W; x += 4){ g.lineTo(x, H * (.74 + i * .08) + Math.sin(x * .035 + i * 2.1) * H * .04 + Math.sin(x * .09 + i) * H * .015); }
+    g.lineTo(W, H); g.closePath(); g.fill();
+  }
+  return c;
+}
+function setSource(c, name){
+  TAP.src = c; TAP.srcName = name; TAP.cur = 0; tapRegrid(); needFit = true; sync();
+}
+
+/* ---------- tapestry model: one flat panel, worked in rows that alternate direction */
+function generateTapestry(){
+  var ST = STITCH[S.stitch], cols = TAP.cols, rows = TAP.rows, w = 10 / S.spc, h = 10 / (S.rpc / ST.hf);
+  var pm = { tapestry: true, word: 'row', w: w, h: h, B: cols, ab: ST.abbr, cols: cols, rows: rows, R: rows,
+    meta: { closed: false, name: 'Tapestry', flat: true }, total: cols * rows, counts: [], roundEnd: [], rounds: [], lines: [], nodes: [],
+    maxR: cols * w / 2, maxZ: rows * h, colVer: 0,
+    spec: { id: 'tap', name: 'Tapestry', mirror: false, color: '#ffffff', color2: '#ffffff', stripes: false } };
+  for (var r = 0; r < rows; r++){ pm.counts.push(cols); pm.roundEnd.push((r + 1) * cols); }
+  refreshTapText(pm);
+  return pm;
+}
+function refreshTapText(pm){
+  var cols = pm.cols, rows = pm.rows, counts = [], i, r, j;
+  for (i = 0; i < TAP.palette.length; i++) counts.push(0);
+  pm.rounds = [];
+  for (r = 0; r < rows; r++){
+    var rtl = r % 2 === 0, runs = [];
+    for (j = 0; j < cols; j++){
+      var c = rtl ? cols - 1 - j : j, v = TAP.grid[r * cols + c]; counts[v] = (counts[v] || 0) + 1;
+      var l = runs[runs.length - 1];
+      if (l && l.v === v) l.n++; else runs.push({ v: v, n: 1 });
+    }
+    pm.rounds.push({ n: cols, text: runs.map(function(x){ return x.n + ' ' + LET(x.v); }).join(', '), note: '', rtl: rtl, color: 0, kind: 'even', types: [] });
+  }
+  pm.palCounts = counts;
+}
+function tapSyncColors(pm){
+  var cols = pm.cols, rows = pm.rows;
+  for (var r = 0; r < rows; r++) for (var c = 0; c < cols; c++) pm.sCol[r * cols + (r % 2 === 0 ? cols - 1 - c : c)] = TAP.grid[r * cols + c];
+}
+function buildTapMeshes(pm, legs){
+  disposeMeshes(pm);
+  var T = pm.total, cols = pm.cols, rows = pm.rows, w = pm.w, h = pm.h, ST = STITCH[S.stitch];
+  var ca = Math.cos(ST.alpha), sa = Math.sin(ST.alpha), W = cols * w, H = rows * h;
+  pm.legs = legs; pm.colorKey = null;
+  pm.sRound = new Int32Array(T); pm.sType = new Uint8Array(T); pm.sCol = new Uint8Array(T);
+  var i = 0, r, j;
+  for (r = 0; r < rows; r++) for (j = 0; j < cols; j++) pm.sRound[i++] = r;
+  tapSyncColors(pm);
+  var seed = 4242 + T; function rnd(){ seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
+  pm.noise = new Float32Array(T * legs);
+  for (var q = 0; q < pm.noise.length; q++) pm.noise[q] = .9 + rnd() * .2;
+  pm.geo = new THREE.SphereGeometry(1, legs === 2 ? 10 : 8, legs === 2 ? 7 : 6);
+  pm.mat = new THREE.MeshStandardMaterial({ roughness: .95, metalness: 0 });
+  var mesh = new THREE.InstancedMesh(pm.geo, pm.mat, T * legs);
+  mesh.frustumCulled = false; mesh.setColorAt(0, new THREE.Color(1, 1, 1));
+  var m = new THREE.Matrix4(), U = new THREE.Vector3(0, 1, 0), Tv = new THREE.Vector3(1, 0, 0), Nv = new THREE.Vector3(0, 0, 1),
+      Dv = new THREE.Vector3(), Zv = new THREE.Vector3(), C = new THREE.Vector3(), Pv = new THREE.Vector3(),
+      bx = new THREE.Vector3(), by = new THREE.Vector3(), bz = new THREE.Vector3();
+  var legLen = clamp(h * 1.25, h * .9, h * 1.6), idx = 0;
+  for (r = 0; r < rows; r++) for (j = 0; j < cols; j++){
+    var xi = (r % 2 === 0) ? cols - 1 - j : j;
+    Pv.set((xi + .5) * w - W / 2, (r + .5) * h, 0);
+    if (legs === 2){
+      for (var sd = -1; sd <= 1; sd += 2){
+        Dv.copy(U).multiplyScalar(ca).addScaledVector(Tv, sd * sa);
+        C.copy(Pv).addScaledVector(Dv, legLen / 2).addScaledVector(U, -legLen * ca / 2);
+        Zv.crossVectors(Dv, Nv);
+        bx.copy(Dv).multiplyScalar(legLen * .52); by.copy(Nv).multiplyScalar(w * .33); bz.copy(Zv).multiplyScalar(w * .3);
+        m.makeBasis(bx, by, bz); m.setPosition(C);
+        mesh.setMatrixAt(idx * 2 + (sd < 0 ? 0 : 1), m);
+      }
+    } else {
+      Zv.crossVectors(U, Nv);
+      bx.copy(U).multiplyScalar(legLen * .62); by.copy(Nv).multiplyScalar(w * .38); bz.copy(Zv).multiplyScalar(w * .48);
+      m.makeBasis(bx, by, bz); m.setPosition(Pv);
+      mesh.setMatrixAt(idx, m);
+    }
+    idx++;
+  }
+  mesh.instanceMatrix.needsUpdate = true; mesh.count = 0;
+  scene.add(mesh); pm.meshes = [mesh]; pm.copies = [{ pos: [0, 0, 0], rot: [0, 0, 0] }];
+  pm.bb = { min: new THREE.Vector3(-W / 2 - w, -h * .2, -w), max: new THREE.Vector3(W / 2 + w, H + h * .2, w) };
+}
+function disposeTap(){
+  if (tapPm){ disposeMeshes(tapPm); tapPm = null; }
+  if (rodGroup){
+    scene.remove(rodGroup);
+    rodGroup.traverse(function(o){ if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+    rodGroup = null;
+  }
+}
+function buildRod(pm){
+  if (rodGroup){
+    scene.remove(rodGroup);
+    rodGroup.traverse(function(o){ if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+  }
+  var W = pm.cols * pm.w, H = pm.rows * pm.h, rr = Math.max(.25, W * .012), len = W + pm.w * 8;
+  var g = new THREE.Group(), mat = new THREE.MeshStandardMaterial({ color: 0x8a5a35, roughness: .7 });
+  var rod = new THREE.Mesh(new THREE.CylinderGeometry(rr, rr, len, 16), mat);
+  rod.rotation.z = PI / 2; rod.position.set(0, H + rr * .9, 0); g.add(rod);
+  [-1, 1].forEach(function(s){
+    var ball = new THREE.Mesh(new THREE.SphereGeometry(rr * 1.6, 14, 10), mat);
+    ball.position.set(s * len / 2, H + rr * .9, 0); g.add(ball);
+  });
+  var pts = [new THREE.Vector3(-W / 2, H + rr * 1.5, 0), new THREE.Vector3(0, H + W * .2, 0), new THREE.Vector3(W / 2, H + rr * 1.5, 0)];
+  g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0xc9a06c })));
+  g.visible = false; scene.add(g); rodGroup = g;
+}
+function tapColors(pm){
+  var T = pm.total, lp = clamp(placed, 0, T), legs = pm.legs, active = placed > 0 && placed < T;
+  var hookL = active ? lp - 1 : -1, curR = active ? pm.sRound[lp - 1] : -1;
+  pm.meshes.forEach(function(m){ m.count = lp * legs; });
+  var keyS = [lp, hookL, curR, pm.colVer, TAP.palette.join(',')].join('|');
+  if (pm.colorKey === keyS) return;
+  pm.colorKey = keyS;
+  if (lp === 0) return;
+  var pc = TAP.palette.map(function(h){ return new THREE.Color(h); });
+  var arr = pm.meshes[0].instanceColor.array;
+  for (var i = 0; i < lp; i++){
+    var base = pc[pm.sCol[i]] || pc[0], r = base.r, g = base.g, b = base.b;
+    if (i === hookL){ r = HOOK.r; g = HOOK.g; b = HOOK.b; }
+    else if (pm.sRound[i] === curR){ r += (1 - r) * .12; g += (1 - g) * .12; b += (1 - b) * .12; }
+    for (var l = 0; l < legs; l++){
+      var ix = i * legs + l, f = pm.noise[ix], o = ix * 3;
+      arr[o] = Math.min(1, r * f); arr[o + 1] = Math.min(1, g * f); arr[o + 2] = Math.min(1, b * f);
+    }
+  }
+  pm.meshes[0].instanceColor.needsUpdate = true;
+}
+
+function syncTapestry(){
+  var oldTotal = model ? model.total : 0, wasDone = model && placed >= model.total;
+  if (TAP.src && tapRowsAuto() !== TAP.rows) tapRegrid();
+  var sig = JSON.stringify([TAP.cols, TAP.rows, S.stitch, S.spc, S.rpc]), pm = tapPm;
+  var total = TAP.cols * TAP.rows, legs = total > 9000 ? 1 : 2;
+  if (!pm || pm.sig !== sig || pm.legs !== legs){
+    if (pm) disposeMeshes(pm);
+    pm = generateTapestry(); pm.sig = sig; tapPm = pm; buildTapMeshes(pm, legs); buildRod(pm);
+  } else { refreshTapText(pm); }
+  pm.start = 0; pm.end = total;
+  model = { parts: [pm], total: total, legs: legs, inst: total };
+  updateBounds(); updateGround();
+  if (needFit){ fitCamera(); needFit = false; }
+  buildTapPattern(); renderLegend(); tapPaletteUI(); syncTapControls();
+  playing = false;
+  placed = (wasDone || oldTotal === 0) ? total : clamp(placed, 0, total);
+  applyColors(); setPlaying(false); ui(); afterSync(); tapDraw();
+}
+
+function tapUI(pm){
+  var T = pm.total, cols = pm.cols, rows = pm.rows, key = $('#nKey'), ins = $('#nIns'), nx = $('#nNext'), ab = pm.ab;
+  var dir = function(r){ return r % 2 === 0 ? 'right to left' : 'left to right'; };
+  $('#bRound').textContent = placed === 0 ? 'Not started' : placed === T ? 'Finished' : 'Row ' + (Math.floor((placed - 1) / cols) + 1) + ' of ' + rows;
+  $('#bSub').textContent = placed + ' of ' + T + ' stitches';
+  if (placed === T){
+    key.textContent = 'All ' + rows + ' rows complete';
+    ins.textContent = 'Weave in the ends and hang it up';
+    nx.textContent = 'See the Pattern tab for finishing notes.';
+    return;
+  }
+  var nr = Math.floor(placed / cols), inR = placed - nr * cols, rd = pm.rounds[nr];
+  ins.textContent = 'Row ' + (nr + 1) + ': ' + rd.text;
+  if (placed === 0) key.textContent = 'Chain ' + (cols + TURN[S.stitch]) + ' for the foundation, then row 1 (' + dir(0) + ')';
+  else if (inR === 0) key.textContent = 'Row ' + nr + ' complete. Next up, row ' + (nr + 1) + ' of ' + rows + ' (' + dir(nr) + ')';
+  else key.textContent = 'Row ' + (nr + 1) + ' of ' + rows + ' (' + dir(nr) + '), stitch ' + inR + ' of ' + cols;
+  var ci = pm.sCol[placed], prev = inR > 0 ? pm.sCol[placed - 1] : -1;
+  nx.innerHTML = 'Next stitch: <strong>' + esc(ab) + ' in colour ' + LET(ci) + '</strong> <span class="ydot" style="background:' + esc(TAP.palette[ci] || '#fff') + '"></span>' +
+    (prev >= 0 && prev !== ci ? ' Switch colours on the last yarn over of the previous stitch.' : '');
+}
+
+function buildTapPattern(){
+  var pm = tapPm, ST = STITCH[S.stitch], ab = ST.abbr, cols = pm.cols, rows = pm.rows, w = pm.w, h = pm.h, T = pm.total, turn = TURN[S.stitch];
+  var title = projectName || 'Tapestry', W = cols * w, H = rows * h;
+  var per = 8 * w / 100 * 1.1 * (.6 + .4 * ST.hf) * 1.35, used = [], yTot = 0;
+  TAP.palette.forEach(function(hex, i){ var n = pm.palCounts[i] || 0; if (n){ used.push({ i: i, hex: hex, n: n, m: n * per }); yTot += n * per; } });
+  var yarnWeight = S.spc >= 26 ? 'Fingering (3 ply)' : S.spc >= 21 ? 'Sport or DK' : S.spc >= 16 ? 'Worsted or aran' : 'Bulky';
+  var hook = fmt(Math.round(62 / S.spc * 4) / 4, 2);
+  var sizeTxt = 'about ' + fmt(W) + ' cm wide and ' + fmt(H) + ' cm tall';
+  var found = 'Chain ' + (cols + turn) + '. Work row 1 into the ' + ['2nd', '3rd', '4th', '5th'][turn - 1] + ' chain from the hook and into each chain across.';
+  var notes = [
+    'Row 1 is the bottom row of the chart. Rows alternate direction: odd rows are worked right to left, even rows left to right. Turn your work after every row' + (turn > 1 ? ' and chain ' + turn + ' (not counted as a stitch)' : ' and chain 1 (not counted as a stitch)') + '.',
+    'Each entry is a number then a colour letter. For example 12 A means ' + ab + ' in the next 12 stitches using colour A.',
+    'Carry the colours you are not using along the top of the previous row and crochet over them so they stay hidden inside the stitches.',
+    'Change colour on the last yarn over of the stitch before the change, and let the old colour drop to the back.',
+    'US terms. ' + ab + ' = ' + ST.name.toLowerCase() + '. Cotton or acrylic yarn with little stretch keeps the picture crisp.'
+  ];
+  var fin = 'Weave in all ends, block lightly to flatten, then sew a casing or loops along the top edge and slide in a dowel to hang it.';
+
+  var text = [title.toUpperCase(), 'Tapestry crochet chart, ' + sizeTxt + ', ' + cols + ' stitches by ' + rows + ' rows, US ' + ST.name.toLowerCase() + ' (' + ab + ').', '', 'MATERIALS', yarnWeight + ' yarn, about ' + fmt(yTot) + ' m in total'];
+  var html = '<div class="ptitle">' + esc(title) + '</div>' +
+    '<p class="note" style="margin-top:0">Tapestry crochet, ' + esc(sizeTxt) + '. Worked in US ' + esc(ST.name.toLowerCase()) + '.</p>' +
+    '<div class="stats"><div class="stat"><b>' + used.length + '</b>colours</div><div class="stat"><b>' + rows + '</b>rows</div><div class="stat"><b>' + T + '</b>stitches</div><div class="stat"><b>~' + fmt(yTot) + ' m</b>yarn</div></div>';
+  if (T > 9000) html += '<div class="warn">This is a big tapestry, so the 3D view uses simplified stitches to stay smooth.</div>';
+  html += '<div class="pblock"><h4>Materials</h4><ul><li>' + esc(yarnWeight) + ' yarn. Amounts include extra for carrying colours:</li>';
+  used.forEach(function(u){
+    html += '<li style="list-style:none;margin-left:-4px"><span class="ydot" style="background:' + esc(u.hex) + '"></span><b>Colour ' + LET(u.i) + '</b>, ' + u.n + ' stitches, about ' + fmt(u.m) + ' m</li>';
+    text.push('  Colour ' + LET(u.i) + ' (' + u.hex + '): ' + u.n + ' stitches, about ' + fmt(u.m) + ' m');
+  });
+  html += '<li>Hook: about ' + hook + ' mm. Go down a size for a dense, firm fabric.</li><li>Yarn needle, scissors, dowel for hanging</li></ul><h4>Notes</h4><ul>';
+  text.push('Hook: about ' + hook + ' mm', 'Yarn needle, scissors, dowel for hanging', '', 'NOTES');
+  notes.forEach(function(n){ html += '<li>' + esc(n) + '</li>'; text.push(n); });
+  html += '</ul><h4>Foundation</h4><p style="margin:0;font-size:14px">' + esc(found) + '</p><h4>Rows</h4><p class="note" style="margin:0 0 8px">Tap a row to jump the 3D view to it.</p><ol class="rounds">';
+  text.push('', 'FOUNDATION', found, '', 'ROWS');
+  pm.rounds.forEach(function(rd, r){
+    var label = 'Row ' + (r + 1) + ' (' + (rd.rtl ? 'right to left' : 'left to right') + ')';
+    html += '<li data-part="0" data-from="' + (r + 1) + '" data-to="' + (r + 1) + '"><button type="button"><span class="rn">' + label + ':</span> ' + esc(rd.text) + ' <span class="cnt">(' + cols + ')</span></button></li>';
+    text.push(label + ': ' + rd.text + ' (' + cols + ')');
+  });
+  html += '</ol><h4>Finishing</h4><p style="margin:0;font-size:14px">' + esc(fin) + '</p></div><button class="copy" id="copyBtn" type="button">Copy pattern as text</button>';
+  text.push('', 'FINISHING', fin);
+
+  var out = $('#patternOut'); out.innerHTML = html;
+  out.querySelectorAll('.rounds li[data-from]').forEach(function(li){
+    li.querySelector('button').onclick = function(){ setPlaying(false); setPlaced(pm.roundEnd[+li.dataset.to - 1]); };
+  });
+  var plain = text.join('\n');
+  $('#copyBtn').onclick = function(){
+    var btn = this, done = function(){ btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = 'Copy pattern as text'; }, 1600); };
+    function fallback(){
+      var ta = document.createElement('textarea'); ta.value = plain; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) { btn.textContent = 'Copy not available here'; }
+      document.body.removeChild(ta);
+    }
+    try { navigator.clipboard.writeText(plain).then(done, fallback); } catch (e) { fallback(); }
+  };
+}
+
+/* ---------- chart editor */
+var chart = $('#chart'), cctx = chart.getContext('2d');
+function tapResizeCanvas(){
+  var cell = TAP.zoom;
+  chart.width = GUT + TAP.cols * cell; chart.height = TAP.rows * cell;
+  chart.style.width = chart.width + 'px'; chart.style.height = chart.height + 'px';
+  tapBaseDirty = true;
+}
+function tapDrawBase(){
+  if (!tapBase) tapBase = mkCanvas(1, 1);
+  var cell = TAP.zoom, cols = TAP.cols, rows = TAP.rows;
+  tapBase.width = cols * cell; tapBase.height = rows * cell;
+  var g = tapBase.getContext('2d');
+  for (var r = 0; r < rows; r++) for (var c = 0; c < cols; c++){
+    g.fillStyle = TAP.palette[TAP.grid[r * cols + c]] || '#ffffff';
+    g.fillRect(c * cell, (rows - 1 - r) * cell, cell, cell);
+  }
+  tapBaseDirty = false;
+}
+function tapDraw(){
+  if (mode !== 'tapestry' || tabName !== 'chart' || !model) return;
+  if (tapBaseDirty || !tapBase) tapDrawBase();
+  var cell = TAP.zoom, cols = TAP.cols, rows = TAP.rows, T = cols * rows, g = cctx, cs = getComputedStyle(document.documentElement);
+  g.clearRect(0, 0, chart.width, chart.height);
+  g.drawImage(tapBase, GUT, 0);
+  if (placed < T){
+    var cr = Math.floor(placed / cols), j = placed - cr * cols, ry = (rows - 1 - cr) * cell;
+    g.globalAlpha = .68; g.fillStyle = cs.getPropertyValue('--surface').trim() || '#fff';
+    g.fillRect(GUT, 0, cols * cell, ry);
+    if (cr % 2 === 0) g.fillRect(GUT, ry, (cols - j) * cell, cell); else g.fillRect(GUT + j * cell, ry, (cols - j) * cell, cell);
+    g.globalAlpha = 1;
+    g.strokeStyle = '#ff2d87'; g.lineWidth = 2; g.strokeRect(GUT + 1, ry + 1, cols * cell - 2, cell - 2);
+  }
+  if (cell >= 6){
+    g.strokeStyle = 'rgba(0,0,0,.2)'; g.lineWidth = 1; g.beginPath();
+    for (var c = 0; c <= cols; c++){ g.moveTo(GUT + c * cell + .5, 0); g.lineTo(GUT + c * cell + .5, rows * cell); }
+    for (var r = 0; r <= rows; r++){ g.moveTo(GUT, r * cell + .5); g.lineTo(GUT + cols * cell, r * cell + .5); }
+    g.stroke();
+  }
+  g.fillStyle = cs.getPropertyValue('--muted').trim() || '#666'; g.font = '11px Figtree, system-ui, sans-serif'; g.textAlign = 'right';
+  for (var rr = 0; rr < rows; rr++) if (rr === 0 || (rr + 1) % 10 === 0) g.fillText(String(rr + 1), GUT - 6, (rows - 1 - rr) * cell + cell / 2 + 4);
+}
+function cellAt(e){
+  var rect = chart.getBoundingClientRect(), cell = TAP.zoom;
+  var x = (e.clientX - rect.left) * (chart.width / rect.width) - GUT, y = (e.clientY - rect.top) * (chart.height / rect.height);
+  var c = Math.floor(x / cell), r = TAP.rows - 1 - Math.floor(y / cell);
+  if (c < 0 || c >= TAP.cols || r < 0 || r >= TAP.rows) return null;
+  return { c: c, r: r };
+}
+function pushUndo(){ TAP.undo.push(TAP.grid.slice()); if (TAP.undo.length > 30) TAP.undo.shift(); }
+function tapTextSoon(){ clearTimeout(tapTimer); tapTimer = setTimeout(function(){ if (mode === 'tapestry') sync(); }, 250); }
+function tapFullRefresh(){
+  tapBaseDirty = true;
+  if (tapPm){ tapSyncColors(tapPm); tapPm.colVer++; }
+  tapDirty = true; tapTextSoon();
+}
+function paintAt(pos){
+  if (!pos) return;
+  if (tapBaseDirty || !tapBase) tapDrawBase();
+  var b = TAP.brush, cols = TAP.cols, v = TAP.cur, g = tapBase.getContext('2d'), cell = TAP.zoom, off = Math.floor((b - 1) / 2);
+  for (var dy = 0; dy < b; dy++) for (var dx = 0; dx < b; dx++){
+    var c = pos.c - off + dx, r = pos.r - off + dy;
+    if (c < 0 || c >= cols || r < 0 || r >= TAP.rows) continue;
+    if (TAP.grid[r * cols + c] === v) continue;
+    TAP.grid[r * cols + c] = v;
+    g.fillStyle = TAP.palette[v]; g.fillRect(c * cell, (TAP.rows - 1 - r) * cell, cell, cell);
+    if (tapPm) tapPm.sCol[r * cols + (r % 2 === 0 ? cols - 1 - c : c)] = v;
+  }
+  if (tapPm) tapPm.colVer++;
+  tapDirty = true; tapTextSoon();
+}
+function flood(c0, r0){
+  var cols = TAP.cols, rows = TAP.rows, g = TAP.grid, target = g[r0 * cols + c0], v = TAP.cur;
+  if (target === v) return false;
+  var stack = [r0 * cols + c0];
+  while (stack.length){
+    var i = stack.pop(); if (g[i] !== target) continue;
+    g[i] = v; var c = i % cols, r = (i - c) / cols;
+    if (c > 0) stack.push(i - 1); if (c < cols - 1) stack.push(i + 1); if (r > 0) stack.push(i - cols); if (r < rows - 1) stack.push(i + cols);
+  }
+  return true;
+}
+var painting = false;
+chart.addEventListener('pointerdown', function(e){
+  if (!TAP.grid) return;
+  var pos = cellAt(e); if (!pos) return;
+  if (TAP.tool === 'pick'){ TAP.cur = TAP.grid[pos.r * TAP.cols + pos.c]; TAP.tool = 'paint'; syncTapControls(); tapPaletteUI(); return; }
+  if (TAP.tool === 'jump'){ setPlaying(false); setPlaced((pos.r + 1) * TAP.cols); return; }
+  pushUndo();
+  if (TAP.tool === 'fill'){ if (flood(pos.c, pos.r)) tapFullRefresh(); else TAP.undo.pop(); return; }
+  try { chart.setPointerCapture(e.pointerId); } catch (x) {}
+  painting = true; paintAt(pos);
+});
+chart.addEventListener('pointermove', function(e){ if (painting) paintAt(cellAt(e)); });
+function endPaint(){ painting = false; }
+chart.addEventListener('pointerup', endPaint); chart.addEventListener('pointercancel', endPaint);
+
+function tapRemoveColour(i){
+  if (TAP.palette.length <= 2) return;
+  pushUndo();
+  TAP.palette.splice(i, 1);
+  for (var k = 0; k < TAP.grid.length; k++) if (TAP.grid[k] > i) TAP.grid[k]--;
+  TAP.cur = clamp(TAP.cur > i ? TAP.cur - 1 : TAP.cur, 0, TAP.palette.length - 1);
+  tapFullRefresh(); tapPaletteUI();
+}
+function tapPaletteUI(){
+  var ul = $('#tPalette'); if (!ul) return; ul.innerHTML = '';
+  TAP.palette.forEach(function(hex, i){
+    var li = document.createElement('li'); li.className = 'projrow';
+    var cnt = tapPm && tapPm.palCounts ? tapPm.palCounts[i] || 0 : 0;
+    var b = document.createElement('button'); b.className = 'partrow'; b.setAttribute('aria-pressed', i === TAP.cur);
+    b.innerHTML = '<i style="background:' + esc(hex) + '"></i><b>Colour ' + LET(i) + '</b><span>' + cnt + ' sts</span>';
+    b.onclick = function(){ TAP.cur = i; if (TAP.tool === 'pick' || TAP.tool === 'jump') TAP.tool = 'paint'; syncTapControls(); tapPaletteUI(); };
+    var inp = document.createElement('input'); inp.type = 'color'; inp.value = hex; inp.setAttribute('aria-label', 'Change colour ' + LET(i));
+    inp.oninput = function(){
+      TAP.palette[i] = this.value; b.querySelector('i').style.background = this.value;
+      if (tapPm) tapPm.colVer++; tapBaseDirty = true; tapDirty = true; tapTextSoon();
+    };
+    li.appendChild(b); li.appendChild(inp);
+    if (cnt === 0 && TAP.palette.length > 2){
+      var x = document.createElement('button'); x.className = 'chip'; x.textContent = 'Remove'; x.setAttribute('aria-label', 'Remove colour ' + LET(i));
+      x.onclick = function(){ tapRemoveColour(i); }; li.appendChild(x);
+    }
+    ul.appendChild(li);
+  });
+}
+function syncTapControls(){
+  var has = !!TAP.src, ST = STITCH[S.stitch], w = 10 / S.spc, h = 10 / (S.rpc / ST.hf);
+  $('#tcols').value = TAP.cols; $('#otcols').textContent = TAP.cols + ' stitches'; setFill($('#tcols'));
+  $('#trows').value = TAP.rows; $('#otrows').textContent = TAP.rows + ' rows'; setFill($('#trows'));
+  $('#tk').value = TAP.k; $('#otk').textContent = TAP.k; setFill($('#tk'));
+  $('#tdither').checked = TAP.dither;
+  $('#ftrows').hidden = has; $('#ftk').hidden = !has; $('#ftdither').hidden = !has;
+  $('#tSrcNote').textContent = has ? 'Using ' + TAP.srcName + '. Height follows the picture and your gauge.' : 'No picture loaded. Paint straight onto the chart, or load a picture above.';
+  $('#tSizeNote').textContent = 'About ' + fmt(TAP.cols * w) + ' cm wide and ' + fmt(TAP.rows * h) + ' cm tall, ' + (TAP.cols * TAP.rows) + ' stitches. ' + (has ? 'Changing the size or colour count redraws the chart and clears hand edits.' : 'Changing the size resamples your drawing.');
+  document.querySelectorAll('#toolSeg button').forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.t === TAP.tool); });
+  document.querySelectorAll('#brushChips .chip').forEach(function(b){ b.setAttribute('aria-pressed', +b.dataset.b === TAP.brush); });
+  $('#tzoom').value = TAP.zoom; $('#otzoom').textContent = TAP.zoom + ' px'; setFill($('#tzoom'));
+}
+function newTapestry(){
+  disposeTap();
+  TAP.src = null; TAP.srcName = ''; TAP.cols = 60; TAP.rows = 60; TAP.k = 6; TAP.dither = false; TAP.cur = 1; TAP.undo = [];
+  TAP.palette = ['#f6f1e1', '#1f2a5c', '#3a6fb5', '#9cc3ea', '#f2c94c', '#c9544d'];
+  TAP.grid = new Uint8Array(3600); TAP.gc = 60; TAP.gr = 60;
+  projectName = 'Untitled tapestry'; $('#tname').value = projectName; savedId = null; placed = 0; model = null;
+  tapResizeCanvas(); syncTapControls(); needFit = true; sync(); renderProjects();
+}
+function gridStr(){ var a = []; for (var i = 0; i < TAP.grid.length; i++) a.push(String.fromCharCode(48 + TAP.grid[i])); return a.join(''); }
+
+function setRowWord(word){
+  bRowBack.innerHTML = IC.rowB + '<span>' + word + '</span>'; bRowFwd.innerHTML = '<span>' + word + '</span>' + IC.rowF;
+  bRowBack.title = 'Undo a ' + word.toLowerCase() + ' (Down arrow)'; bRowFwd.title = 'Finish the ' + word.toLowerCase() + ' (Up arrow)';
+}
+function setMode(m, skip){
+  if (m === mode) return;
+  modeMeta[mode].name = projectName; modeMeta[mode].savedId = savedId;
+  mode = m; projectName = modeMeta[m].name; savedId = modeMeta[m].savedId;
+  $('#btnModeShapes').setAttribute('aria-pressed', m === 'shapes'); $('#btnModeTap').setAttribute('aria-pressed', m === 'tapestry');
+  document.querySelectorAll('.tab[data-mode]').forEach(function(el){ el.hidden = el.dataset.mode !== 'both' && el.dataset.mode !== m; });
+  setRowWord(m === 'tapestry' ? 'Row' : 'Round');
+  resetCache(); disposeTap(); model = null; placed = 0;
+  if (m === 'tapestry'){ autoShapes = S.auto; S.auto = false; cam.az = 0; cam.pol = 1.45; $('#tname').value = projectName; tab('image'); }
+  else { S.auto = autoShapes; cam.az = .75; cam.pol = 1.12; $('#pname').value = projectName; tab('parts'); }
+  $('#btnSpin').setAttribute('aria-pressed', S.auto);
+  syncSettings();
+  if (!skip){ needFit = true; sync(); }
+  updateSaveUI(); renderProjects();
+}
+$('#btnModeShapes').onclick = function(){ setMode('shapes'); };
+$('#btnModeTap').onclick = function(){ setMode('tapestry'); };
+
+/* tapestry controls */
+$('#tUpload').onclick = function(){ $('#tfile').click(); };
+$('#tfile').addEventListener('change', function(){
+  var f = this.files && this.files[0]; if (!f) return;
+  var fr = new FileReader(), input = this;
+  fr.onload = function(){
+    var im = new Image();
+    im.onload = function(){
+      var sc = Math.min(1, 480 / Math.max(im.width, im.height)), c = mkCanvas(Math.max(1, Math.round(im.width * sc)), Math.max(1, Math.round(im.height * sc)));
+      c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+      setSource(c, f.name || 'your picture');
+    };
+    im.onerror = function(){ $('#tSrcNote').textContent = 'That file could not be read as a picture. Try a JPG or PNG.'; };
+    im.src = fr.result;
+  };
+  fr.readAsDataURL(f); input.value = '';
+});
+$('#tStarry').onclick = function(){ setSource(makeStarry(), 'the starry sky sample'); };
+$('#tSunset').onclick = function(){ setSource(makeSunset(), 'the sunset sample'); };
+$('#tBlank').onclick = function(){ newTapestry(); };
+$('#tcols').addEventListener('input', function(){ TAP.cols = +this.value; $('#otcols').textContent = TAP.cols + ' stitches'; setFill(this); tapRegridSoon(); });
+$('#trows').addEventListener('input', function(){ TAP.rows = +this.value; $('#otrows').textContent = TAP.rows + ' rows'; setFill(this); tapRegridSoon(); });
+$('#tk').addEventListener('input', function(){ TAP.k = +this.value; $('#otk').textContent = TAP.k; setFill(this); tapRegridSoon(); });
+$('#tdither').addEventListener('change', function(){ TAP.dither = this.checked; tapRegridSoon(); });
+$('#tname').addEventListener('input', function(){ projectName = this.value; schedule(); });
+document.querySelectorAll('#toolSeg button').forEach(function(b){ b.onclick = function(){ TAP.tool = b.dataset.t; syncTapControls(); }; });
+(function(){
+  var bc = $('#brushChips');
+  [1, 2, 3].forEach(function(n){
+    var b = document.createElement('button'); b.className = 'chip'; b.dataset.b = n; b.textContent = n + '×' + n;
+    b.onclick = function(){ TAP.brush = n; syncTapControls(); }; bc.appendChild(b);
+  });
+})();
+$('#tUndo').onclick = function(){ var g = TAP.undo.pop(); if (!g) return; TAP.grid = g; tapFullRefresh(); tapPaletteUI(); };
+$('#tAddColour').onclick = function(){ if (TAP.palette.length >= 20) return; TAP.palette.push('#888888'); TAP.cur = TAP.palette.length - 1; tapTextSoon(); tapPaletteUI(); };
+$('#tzoom').addEventListener('input', function(){ TAP.zoom = +this.value; $('#otzoom').textContent = TAP.zoom + ' px'; setFill(this); tapResizeCanvas(); tapDraw(); });
+
+
+/* ------------------------------------------------------------------ loop */
+var last = performance.now();
+function loop(t){
+  var dt = Math.min(.1, (t - last) / 1000); last = t;
+  if (playing && model){
+    acc += dt * S.speed;
+    var adv = Math.floor(acc);
+    if (adv > 0){
+      acc -= adv;
+      var nxt = Math.min(model.total, placed + adv);
+      setPlaced(nxt);
+      if (nxt >= model.total){ playing = false; setPlaying(false); ui(); }
+    }
+  }
+  if (tapDirty){ tapDirty = false; if (mode === 'tapestry'){ applyColors(); tapDraw(); } }
+  if (S.auto && !interacting) cam.az += dt * .3;
+  updateCamera();
+  renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+}
+
+$('#speed').value = 46; S.speed = speedFromSlider(46); $('#oSpeed').textContent = S.speed + ' sts/sec';
+syncSettings(); resize(); tapResizeCanvas(); syncTapControls(); tapPaletteUI(); newProject(); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
