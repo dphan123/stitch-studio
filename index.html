@@ -184,6 +184,25 @@ select.txt{appearance:auto}
 .museumstage h2{font-family:var(--display);font-size:25px;letter-spacing:-.02em;margin:0 0 8px;line-height:1.15}
 .museumstage ol{padding-left:20px;margin:10px 0}
 .museumstage li{margin:6px 0}
+.manifesto{font-size:15.5px;line-height:1.55;margin:4px 0 12px;padding:12px 14px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 12px 12px 0}
+.genericonly,.btnNew{display:none !important}
+.intentbox{margin:12px 0 4px;display:grid;gap:6px}
+.intentbox label{display:grid;gap:2px}
+.intentbox textarea{width:100%;resize:vertical;min-height:72px;line-height:1.45;font:inherit;color:inherit;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:9px 11px}
+.intentbox textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
+.intentbox .chips{margin:0}
+.chip:disabled{opacity:.45;cursor:not-allowed}
+.modeswitch button:disabled{opacity:.45;cursor:not-allowed}
+.rendition:empty{display:none}
+.rendition .rhead{display:flex;gap:12px;align-items:flex-start}
+.rendition .rhead img{width:72px;height:72px;object-fit:contain;background:var(--surface2);border-radius:10px;flex:none}
+.rendition .rtitle{font-weight:700;line-height:1.3}
+.rendition blockquote{margin:10px 0;padding:8px 12px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 10px 10px 0;font-style:italic}
+.rendition .cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+.rendition h4{margin:6px 0 4px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.rendition ul{margin:0;padding-left:18px;font-size:13px}
+.rendition li{margin:3px 0}
+@media (max-width:560px){.rendition .cols{grid-template-columns:1fr}}
 .mp-frame{background-color:var(--board);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:26px 26px;border-radius:20px;padding:20px;display:flex;justify-content:center;margin-bottom:16px}
 .mp-frame img{max-width:100%;max-height:46vh;border-radius:4px;box-shadow:0 12px 30px -10px rgba(0,0,0,.55);background:var(--surface2);min-height:80px;min-width:80px}
 .mp-meta{margin:0;font-weight:600}
@@ -236,12 +255,13 @@ header.top{flex-wrap:wrap}
   </svg>
   <div>
     <h1>Stitch Studio</h1>
-    <p>Build crochet designs from shapes, pictures or museum artworks, then watch them get worked stitch by stitch in 3D.</p>
+    <p>Choose a work from the Harvard Art Museums and say why. A machine-learning tool re-stitches it as crochet. The intent is yours; the machine is the tool.</p>
   </div>
-  <div class="modeswitch" role="group" aria-label="Mode">
-    <button id="btnModeShapes" aria-pressed="true">Shapes</button>
-    <button id="btnModeTap" aria-pressed="false">Tapestry</button>
-    <button id="btnModeMuseum" aria-pressed="false">Museum</button>
+  <div class="modeswitch" role="group" aria-label="View">
+    <button id="btnModeShapes" aria-pressed="false" hidden>Shapes</button>
+    <button id="btnModeTap" aria-pressed="false" hidden>Tapestry</button>
+    <button id="btnModeMuseum" aria-pressed="true">Collection</button>
+    <button id="btnModeResult" aria-pressed="false" disabled title="Re-stitch an artwork first">Your rendition</button>
   </div>
 </header>
 
@@ -278,19 +298,27 @@ header.top{flex-wrap:wrap}
     </div>
     <div class="museumstage" id="museumStage" hidden>
       <div id="mEmpty">
-        <h2>Turn a museum artwork into crochet</h2>
+        <h2>Re-stitch a work of art</h2>
+        <p class="manifesto">Art is made by participation, not by the tool. A brush, a loom, a camera and a machine-learning model are all instruments. What makes the result art is a person choosing, with intent, what to make and why.</p>
         <ol>
-          <li>Search, or choose a category on the right.</li>
-          <li>Pick an artwork to see it here.</li>
-          <li>Paintings become tapestry charts. Objects become crocheted 3D pieces.</li>
+          <li><b>Choose</b> a work from the collection on the right.</li>
+          <li><b>Say why.</b> Write your intent: what you want your version to keep, change or say.</li>
+          <li><b>Let the tool work.</b> It turns paintings into tapestry charts and traces objects into 3D crochet, and it shows you every step it took.</li>
+          <li><b>Make it yours.</b> Adjust colours, size and shape. Every change is a decision only you can make.</li>
         </ol>
-        <p class="note">Images and details come from the Harvard Art Museums collection.</p>
+        <p class="note">Images and details come from the Harvard Art Museums collection. Every pattern credits the original work and the artist.</p>
       </div>
       <div id="mCard" hidden>
         <div class="mp-frame"><img id="mpImg" alt=""></div>
         <h2 id="mpTitle"></h2>
         <p class="mp-meta" id="mpMeta"></p>
         <p class="note" id="mpMedium" style="margin-top:2px"></p>
+        <div class="intentbox">
+          <label for="mpIntent"><b>Your intent</b> <span class="note">Why this work? What should your version keep, change or say?</span></label>
+          <textarea id="mpIntent" class="txt" rows="3" maxlength="400" placeholder="For example: I want to keep the persimmons’ orange against the grey branch, and make something you can hold."></textarea>
+          <div class="chips" id="mpIntentChips"></div>
+          <p class="note" id="mpIntentNote"></p>
+        </div>
         <div class="mp-actions"><button class="chip primary big" id="mpMain"></button><button class="chip big" id="mpAlt"></button></div>
         <p class="note" id="mpHint"></p>
         <p class="note" id="mpNote"></p>
@@ -311,6 +339,7 @@ header.top{flex-wrap:wrap}
 
     <!-- PARTS -->
     <div class="pane" id="paneParts" role="tabpanel" aria-labelledby="tabParts">
+      <div class="sec rendition"></div>
       <div class="sec">
         <h3>Project</h3>
         <input class="txt" type="text" id="pname" aria-label="Project name" maxlength="40">
@@ -321,17 +350,21 @@ header.top{flex-wrap:wrap}
         <p class="note saveStatus"></p>
       </div>
       <div class="sec">
-        <h3>My projects</h3>
+        <h3>Saved renditions</h3>
         <ul class="partlist projlist"></ul>
+        <div class="genericonly">
         <p class="note" style="margin-top:14px">Or start from a template. This replaces your current design.</p>
         <div class="chips" id="presetChips" style="margin-top:8px"></div>
+        </div>
       </div>
       <div class="sec">
-        <h3>Parts</h3>
-        <p class="note" style="margin:0 0 10px">Parts are made in this order. Select one to edit it. Its bounding box is outlined in pink in the 3D view.</p>
+        <h3>Shape</h3>
+        <p class="note" style="margin:0 0 10px">Select the piece to adjust how the tool traced it.</p>
         <ul class="partlist" id="partList"></ul>
+        <div class="genericonly">
         <h3 style="margin-top:18px">Add a part</h3>
         <div class="addgrid" id="addGrid"></div>
+        </div>
       </div>
       <div class="sec" id="editor"></div>
     </div>
@@ -353,6 +386,7 @@ header.top{flex-wrap:wrap}
 
     <!-- TAPESTRY: PICTURE -->
     <div class="pane" id="paneImage" role="tabpanel" aria-labelledby="tabImage" hidden>
+      <div class="sec rendition"></div>
       <div class="sec">
         <h3>Project</h3>
         <input class="txt" type="text" id="tname" aria-label="Project name" maxlength="40">
@@ -362,7 +396,7 @@ header.top{flex-wrap:wrap}
         </div>
         <p class="note saveStatus"></p>
       </div>
-      <div class="sec">
+      <div class="sec genericonly">
         <h3>Picture</h3>
         <p class="note" style="margin:0 0 10px">Upload a painting, photo or drawing and it becomes a colour chart. Or start from a sample, or a blank grid you paint yourself.</p>
         <div class="edhead">
@@ -603,7 +637,7 @@ function generatePart(p){
   var rounds = [], i, j;
   for (i = 0; i < R; i++){
     var nn = counts[i], pv = i ? counts[i - 1] : 0, o = { n: nn, prev: pv, types: [], note: '' };
-    o.color = (p.shape === 'lathe' && p.rowCols) ? p.rowCols[Math.min(p.rowCols.length - 1, Math.floor((i + .5) / R * p.rowCols.length))] : (p.stripes ? Math.floor(i / p.stripeN) % 2 : 0);
+    o.color = (p.shape === 'lathe' && p.rowCols) ? p.rowCols[clamp(Math.floor(prof.at((i + .5) * step).z / Math.max(.01, p.H) * p.rowCols.length), 0, p.rowCols.length - 1)] : (p.stripes ? Math.floor(i / p.stripeN) % 2 : 0);
     if (i === 0){
       o.kind = 'start'; o.text = B + ' ' + ab + ' in magic ring';
       for (j = 0; j < B; j++) o.types.push(0);
@@ -1242,9 +1276,9 @@ var savedId = null, STORE_KEY = 'stitchstudio.projects.v1', storeOK = true;
 function readStore(){ try { var r = localStorage.getItem(STORE_KEY); return r ? JSON.parse(r) : []; } catch (e) { storeOK = false; return []; } }
 function writeStore(l){ try { localStorage.setItem(STORE_KEY, JSON.stringify(l)); return true; } catch (e) { storeOK = false; return false; } }
 function snapshot(id){
-  if (mode === 'tapestry') return { id: id, type: 'tapestry', name: projectName || 'Untitled tapestry', credit: modeMeta.tapestry.credit || '', stitch: S.stitch, spc: S.spc, rpc: S.rpc, style: S.style,
+  if (mode === 'tapestry') return { id: id, type: 'tapestry', name: projectName || 'Untitled tapestry', credit: modeMeta.tapestry.credit || '', intent: modeMeta.tapestry.intent || '', stitch: S.stitch, spc: S.spc, rpc: S.rpc, style: S.style,
     cols: TAP.cols, rows: TAP.rows, palette: TAP.palette.slice(), k: TAP.k, dither: TAP.dither, grid: gridStr(), updated: Date.now() };
-  return { id: id, name: projectName || 'Untitled project', credit: modeMeta.shapes.credit || '', stitch: S.stitch, spc: S.spc, rpc: S.rpc, style: S.style,
+  return { id: id, name: projectName || 'Untitled project', credit: modeMeta.shapes.credit || '', intent: modeMeta.shapes.intent || '', stitch: S.stitch, spc: S.spc, rpc: S.rpc, style: S.style,
            nextId: nextId, parts: JSON.parse(JSON.stringify(parts)), updated: Date.now() };
 }
 function findSaved(list){ for (var k = 0; k < list.length; k++) if (list[k].id === savedId) return k; return -1; }
@@ -1292,7 +1326,7 @@ function renderProjects(){
 }
 function resetCache(){ Object.keys(cache).forEach(function(k){ disposeMeshes(cache[k]); delete cache[k]; }); }
 function startProject(list, name){
-  modeMeta.shapes.credit = '';
+  modeMeta.shapes.credit = ''; modeMeta.shapes.intent = '';
   resetCache(); parts = list; sel = parts.length ? parts[0].id : null; projectName = name; $('#pname').value = name;
   savedId = null; placed = 0; model = null;
   renderParts(); renderEditor(); cam.az = .75; cam.pol = 1.12;
@@ -1310,7 +1344,7 @@ function loadProject(id){
     TAP.grid = new Uint8Array(snap.cols * snap.rows);
     for (var i = 0; i < TAP.grid.length; i++) TAP.grid[i] = Math.min(TAP.palette.length - 1, Math.max(0, snap.grid.charCodeAt(i) - 48));
     TAP.gc = snap.cols; TAP.gr = snap.rows; TAP.cur = Math.min(1, TAP.palette.length - 1); TAP.undo = [];
-    projectName = snap.name; $('#tname').value = snap.name; modeMeta.tapestry.credit = snap.credit || '';
+    projectName = snap.name; $('#tname').value = snap.name; modeMeta.tapestry.credit = snap.credit || ''; modeMeta.tapestry.intent = snap.intent || '';
     disposeTap(); placed = 0; model = null; tapResizeCanvas(); syncTapControls(); needFit = true; sync();
     savedId = id; updateSaveUI(); renderProjects(); return;
   }
@@ -1318,7 +1352,7 @@ function loadProject(id){
   syncSettings();
   nextId = Math.max(nextId, snap.nextId || 1);
   startProject(snap.parts, snap.name);
-  modeMeta.shapes.credit = snap.credit || ''; schedule();
+  modeMeta.shapes.credit = snap.credit || ''; modeMeta.shapes.intent = snap.intent || ''; schedule();
   savedId = id; updateSaveUI(); renderProjects();
 }
 document.querySelectorAll('.btnSave').forEach(function(b){ b.onclick = saveProject; });
@@ -1420,6 +1454,8 @@ function buildPattern(){
     '</div>';
   var credit = (modeMeta[mode] || {}).credit || '';
   if (credit){ html += '<p class="note">Based on ' + esc(credit) + '</p>'; text.splice(2, 0, 'Based on ' + credit); }
+  var intent = (modeMeta[mode] || {}).intent || '';
+  if (credit){ html += '<p class="note">Re-stitched with an algorithmic tool, directed by the maker' + (intent ? '. Maker’s intent: “' + esc(intent) + '”' : '') + '</p>'; text.splice(3, 0, 'Re-stitched with an algorithmic tool, directed by the maker.' + (intent ? ' Maker’s intent: “' + intent + '”' : '')); }
   if (m.legs === 1) html += '<div class="warn">This is a big project, so the 3D view uses simplified stitches to stay smooth.</div>';
   html += '<div class="pblock"><h4>Materials</h4><ul>' +
     '<li>' + esc(yarnWeight) + ' yarn. Estimated amounts:</li>';
@@ -1497,7 +1533,7 @@ function buildPattern(){
 
 /* =========================================================== TAPESTRY */
 var mode = 'shapes', autoShapes = S.auto, tapPm = null, rodGroup = null, tapBase = null, tapBaseDirty = true, tapTimer = null, tapRegridTimer = null, tapDirty = false;
-var modeMeta = { shapes: { name: 'Untitled project', savedId: null, credit: '' }, tapestry: { name: 'Untitled tapestry', savedId: null, credit: '' }, museum: { name: '', savedId: null, credit: '' } };
+var modeMeta = { shapes: { name: 'Untitled project', savedId: null, credit: '', intent: '' }, tapestry: { name: 'Untitled tapestry', savedId: null, credit: '', intent: '' }, museum: { name: '', savedId: null, credit: '', intent: '' } };
 var TAP = { src: null, srcName: '', cols: 60, rows: 60, gc: 60, gr: 60, k: 6, dither: false, cur: 1, tool: 'paint', brush: 1, zoom: 8, undo: [],
             palette: ['#f6f1e1', '#1f2a5c', '#3a6fb5', '#9cc3ea', '#f2c94c', '#c9544d'], grid: new Uint8Array(3600) };
 var TURN = { sc: 1, hdc: 2, dc: 3, tr: 4 };
@@ -1853,6 +1889,8 @@ function buildTapPattern(){
     '<div class="stats"><div class="stat"><b>' + used.length + '</b>colours</div><div class="stat"><b>' + rows + '</b>rows</div><div class="stat"><b>' + T + '</b>stitches</div><div class="stat"><b>~' + fmt(yTot) + ' m</b>yarn</div></div>';
   var credit = (modeMeta[mode] || {}).credit || '';
   if (credit){ html += '<p class="note">Based on ' + esc(credit) + '</p>'; text.splice(2, 0, 'Based on ' + credit); }
+  var intent = (modeMeta[mode] || {}).intent || '';
+  if (credit){ html += '<p class="note">Re-stitched with an algorithmic tool, directed by the maker' + (intent ? '. Maker’s intent: “' + esc(intent) + '”' : '') + '</p>'; text.splice(3, 0, 'Re-stitched with an algorithmic tool, directed by the maker.' + (intent ? ' Maker’s intent: “' + intent + '”' : '')); }
   if (T > 9000) html += '<div class="warn">This is a big tapestry, so the 3D view uses simplified stitches to stay smooth.</div>';
   html += '<div class="pblock"><h4>Materials</h4><ul><li>' + esc(yarnWeight) + ' yarn. Amounts include extra for carrying colours:</li>';
   used.forEach(function(u){
@@ -2029,7 +2067,7 @@ function syncTapControls(){
   $('#tzoom').value = TAP.zoom; $('#otzoom').textContent = TAP.zoom + ' px'; setFill($('#tzoom'));
 }
 function newTapestry(){
-  modeMeta.tapestry.credit = '';
+  modeMeta.tapestry.credit = ''; modeMeta.tapestry.intent = '';
   disposeTap();
   TAP.src = null; TAP.srcName = ''; TAP.cols = 60; TAP.rows = 60; TAP.k = 6; TAP.dither = false; TAP.cur = 1; TAP.undo = [];
   TAP.palette = ['#f6f1e1', '#1f2a5c', '#3a6fb5', '#9cc3ea', '#f2c94c', '#c9544d'];
@@ -2048,6 +2086,7 @@ function setMode(m, skip){
   modeMeta[mode].name = projectName; modeMeta[mode].savedId = savedId;
   mode = m; projectName = modeMeta[m].name; savedId = modeMeta[m].savedId;
   $('#btnModeShapes').setAttribute('aria-pressed', m === 'shapes'); $('#btnModeTap').setAttribute('aria-pressed', m === 'tapestry'); $('#btnModeMuseum').setAttribute('aria-pressed', m === 'museum');
+  $('#btnModeResult').setAttribute('aria-pressed', m !== 'museum');
   document.querySelectorAll('.tab[data-mode]').forEach(function(el){ el.hidden = el.dataset.mode.split(' ').indexOf(m) < 0; });
   $('#viewer').hidden = m === 'museum'; document.querySelector('.playback').hidden = m === 'museum'; $('#museumStage').hidden = m !== 'museum';
   setRowWord(m === 'tapestry' ? 'Row' : 'Round');
@@ -2058,7 +2097,7 @@ function setMode(m, skip){
   $('#btnSpin').setAttribute('aria-pressed', S.auto);
   syncSettings();
   if (!skip && m !== 'museum'){ needFit = true; sync(); }
-  updateSaveUI(); renderProjects();
+  updateSaveUI(); renderProjects(); if (typeof renderRendition === 'function') renderRendition();
 }
 $('#btnModeShapes').onclick = function(){ setMode('shapes'); };
 $('#btnModeTap').onclick = function(){ setMode('tapestry'); };
@@ -2102,7 +2141,8 @@ $('#tzoom').addEventListener('input', function(){ TAP.zoom = +this.value; $('#ot
 
 
 /* =========================================================== MUSEUM + OBJECT TRACING */
-var M = { cat: 'Paintings', q: '', page: 1, pages: 1, total: 0, recs: [], sel: null, loading: false, err: '', reqId: 0, busy: false };
+var M = { cat: 'Paintings', q: '', page: 1, pages: 1, total: 0, recs: [], sel: null, loading: false, err: '', reqId: 0, busy: false, intents: {} };
+var REND = null; // the most recent rendition: the work, the maker's intent, and what the tool did
 var CATS = [['Paintings', 'Paintings'], ['Drawings', 'Drawings'], ['Prints', 'Prints'], ['Photographs', 'Photographs'], ['Vessels', 'Vessels'], ['Sculpture', 'Sculpture'], ['', 'Everything']];
 var FLAT = ['Paintings', 'Drawings', 'Prints', 'Photographs', 'Posters', 'Manuscripts and Single Leaves'];
 var latheSrc = {};
@@ -2124,16 +2164,28 @@ function traceFromPixels(d, w, h, opt){
   for (x = 0; x < w; x++){ addB(x, 0); addB(x, 1); addB(x, h - 1); addB(x, h - 2); }
   for (y = 0; y < h; y++){ addB(0, y); addB(1, y); addB(w - 1, y); addB(w - 2, y); }
   function med(a){ var s = a.slice().sort(function(p, q){ return p - q; }); return s[s.length >> 1]; }
-  var br = med(rs), bg = med(gs), bb = med(bs), dev = 0;
-  for (i = 0; i < rs.length; i++) dev += Math.sqrt(2 * (rs[i] - br) * (rs[i] - br) + 4 * (gs[i] - bg) * (gs[i] - bg) + 3 * (bs[i] - bb) * (bs[i] - bb)) / 3;
-  dev /= rs.length;
-  var T = Math.max(28, dev * 3 + 18), mask = new Uint8Array(n);
+  var br = med(rs), bg = med(gs), bb = med(bs);
+  /* museum photos often sit on a graded backdrop, so estimate the background row by row from the left and right edges */
+  var lbR = new Float32Array(h), lbG = new Float32Array(h), lbB = new Float32Array(h), dev = 0, dn = 0;
+  for (y = 0; y < h; y++){
+    var cr = [br], cg = [bg], cb = [bb];
+    [0, 1, 2, w - 3, w - 2, w - 1].forEach(function(xx){ var o = (y * w + xx) * 4; cr.push(d[o]); cg.push(d[o + 1]); cb.push(d[o + 2]); });
+    lbR[y] = med(cr); lbG[y] = med(cg); lbB[y] = med(cb);
+  }
+  for (y = 0; y < h; y++) [0, w - 1].forEach(function(xx){ var o = (y * w + xx) * 4, dr = d[o] - lbR[y], dg = d[o + 1] - lbG[y], db = d[o + 2] - lbB[y]; dev += Math.sqrt(2 * dr * dr + 4 * dg * dg + 3 * db * db) / 3; dn++; });
+  for (x = 0; x < w; x++) [0, h - 1].forEach(function(yy){ var o = (yy * w + x) * 4, dr = d[o] - lbR[yy], dg = d[o + 1] - lbG[yy], db = d[o + 2] - lbB[yy]; dev += Math.sqrt(2 * dr * dr + 4 * dg * dg + 3 * db * db) / 3; dn++; });
+  dev /= Math.max(1, dn);
+  var T = Math.max(9, dev * 3 + 7), mask = new Uint8Array(n);
   for (i = 0; i < n; i++){
-    var o = i * 4, a = d[o + 3];
+    var o = i * 4, a = d[o + 3], yy0 = (i / w) | 0;
     if (a < 40) continue;
-    var dr = d[o] - br, dg = d[o + 1] - bg, db = d[o + 2] - bb;
+    var dr = d[o] - lbR[yy0], dg = d[o + 1] - lbG[yy0], db = d[o + 2] - lbB[yy0];
     if (Math.sqrt(2 * dr * dr + 4 * dg * dg + 3 * db * db) / 3 > T) mask[i] = 1;
   }
+  /* close small gaps so a pale body joins its darker decoration */
+  var grow = new Uint8Array(n);
+  for (y = 1; y < h - 1; y++) for (x = 1; x < w - 1; x++){ var q0 = y * w + x; if (mask[q0] || ((mask[q0 - 1] && mask[q0 + 1]) || (mask[q0 - w] && mask[q0 + w]))) grow[q0] = 1; }
+  mask = grow;
   /* largest connected blob */
   var lab = new Int32Array(n), q = new Int32Array(n), best = 0, bestLabel = 0, label = 0;
   for (i = 0; i < n; i++){
@@ -2171,19 +2223,37 @@ function traceFromPixels(d, w, h, opt){
   for (y = minY; y <= maxY; y++){ if (rowMin[y] < minX) minX = rowMin[y]; if (rowMax[y] > maxX) maxX = rowMax[y]; }
   var bw = maxX - minX + 1;
 
+  /* central axis: median midpoint of the rows in the middle of the object */
+  /* (a handle shifts the midpoint of the rows it touches, so take the median over all rows, then refine with the rows that agree) */
+  var mids = [];
+  for (y = minY; y <= maxY; y++) if (rowMax[y] >= rowMin[y]) mids.push((rowMin[y] + rowMax[y]) / 2);
+  var ax = mids.length ? med(mids) : (minX + maxX) / 2;
+  var agree = mids.filter(function(v){ return Math.abs(v - ax) <= Math.max(1.5, bw * .03); });
+  if (agree.length > 4) ax = agree.reduce(function(a2, b2){ return a2 + b2; }, 0) / agree.length;
+  /* radius at each height: symmetric about the axis; if one side sticks out much further (a handle or spout), use the other side */
   var widths = [], j;
   for (i = 0; i < LN; i++){
-    var sy = maxY - Math.round(i / (LN - 1) * (bh - 1));
-    widths.push(rowMax[sy] >= rowMin[sy] ? rowMax[sy] - rowMin[sy] + 1 : 0);
+    var sy = maxY - Math.round(i / (LN - 1) * (bh - 1)), wv = 0;
+    if (rowMax[sy] >= rowMin[sy]){
+      var L = Math.max(0, ax - rowMin[sy] + .5), Rr = Math.max(0, rowMax[sy] - ax + .5);
+      wv = Math.abs(L - Rr) > .22 * Math.max(L, Rr) ? 2 * Math.min(L, Rr) : L + Rr;
+    }
+    widths.push(wv);
   }
+  /* median filter removes single-row spikes (shadows, labels, stray pixels) */
+  var mf = [];
+  for (i = 0; i < LN; i++){ var win = []; for (j = Math.max(0, i - 2); j <= Math.min(LN - 1, i + 2); j++) win.push(widths[j]); mf.push(med(win)); }
+  widths = mf;
   var rad = Math.round((opt.smooth || 0) * 1.5);
   if (rad > 0){
     var sm = [];
     for (i = 0; i < LN; i++){ var s = 0, c = 0; for (j = Math.max(0, i - rad); j <= Math.min(LN - 1, i + rad); j++){ s += widths[j]; c++; } sm.push(s / c); }
+    sm[0] = widths[0]; sm[LN - 1] = widths[LN - 1]; // keep the true foot and rim
     widths = sm;
   }
   var maxw = 1; for (i = 0; i < LN; i++) if (widths[i] > maxw) maxw = widths[i];
   widths = widths.map(function(v){ return Math.max(0, v / maxw); });
+  bw = Math.max(1, maxw);
 
   /* colours: k-means over the object's pixels, then the dominant colour of each height */
   var k = Math.max(1, Math.min(6, opt.k || 3)), px = [], rowOf = [];
@@ -2214,7 +2284,7 @@ function traceFromPixels(d, w, h, opt){
   return { widths: widths, rowCols: rc2, pal: newPal, aspect: bh / bw, closedTop: widths[LN - 1] < .14, mask: m2, w: w, h: h };
 }
 function traceObject(src, opt){
-  var sc = 160 / Math.max(src.width, src.height), w = Math.max(8, Math.round(src.width * sc)), h = Math.max(8, Math.round(src.height * sc));
+  var sc = 240 / Math.max(src.width, src.height), w = Math.max(8, Math.round(src.width * sc)), h = Math.max(8, Math.round(src.height * sc));
   var c = mkCanvas(w, h), g = c.getContext('2d'); g.drawImage(src, 0, 0, w, h);
   var img = g.getImageData(0, 0, w, h), tr = traceFromPixels(img.data, w, h, opt || {});
   var prev = mkCanvas(w, h), pg = prev.getContext('2d'); pg.drawImage(c, 0, 0);
@@ -2326,12 +2396,55 @@ function museumPreview(){
   $('#mpMedium').textContent = [r.classification, r.medium].filter(Boolean).join(', ');
   $('#mpMain').textContent = flat ? 'Turn into a tapestry' : 'Turn into a 3D piece';
   $('#mpAlt').textContent = flat ? 'Make a 3D piece instead' : 'Make a tapestry instead';
-  $('#mpMain').disabled = $('#mpAlt').disabled = M.busy;
+  $('#mpMain').textContent = flat ? 'Re-stitch as a tapestry' : 'Re-stitch as a 3D piece';
+  $('#mpAlt').textContent = flat ? 'As a 3D piece instead' : 'As a tapestry instead';
+  var it = $('#mpIntent');
+  if (it.dataset.id !== String(r.id)){
+    it.dataset.id = r.id; it.value = M.intents[r.id] || '';
+    var ic = $('#mpIntentChips'); ic.innerHTML = '';
+    (flat ? INTENT_FLAT : INTENT_OBJ).forEach(function(t){
+      var b = document.createElement('button'); b.className = 'chip'; b.type = 'button'; b.textContent = t;
+      b.onclick = function(){ it.value = (it.value.trim() ? it.value.trim() + ' ' : '') + t; M.intents[r.id] = it.value; syncIntent(); it.focus(); };
+      ic.appendChild(b);
+    });
+  }
+  syncIntent();
   $('#mpHint').textContent = flat
-    ? 'Paintings and drawings work best as tapestries: the picture becomes a colour chart you crochet row by row.'
-    : 'Objects are traced from their photo and crocheted as a round, vase-like shape that keeps the outline and colours.';
+    ? 'The tool suggests a tapestry: the picture becomes a colour chart you crochet row by row.'
+    : 'The tool suggests a 3D piece: it traces the object’s silhouette from the photo and crochets it in the round.';
   var a = $('#mpLink'); if (r.url){ a.href = r.url; a.hidden = false; } else a.hidden = true;
 }
+var INTENT_FLAT = ['I want to keep its colours.', 'I want to make it soft enough to touch.', 'I want to bring it out of the museum and into everyday life.', 'I want to look at it slowly, stitch by stitch.'];
+var INTENT_OBJ = ['I want to hold its form in my hands.', 'I want to turn a fragile object into a soft one.', 'I want to keep its bands of colour.', 'I want an everyday copy of a museum piece.'];
+function intentOf(r){ return ((r && M.intents[r.id]) || '').trim(); }
+function syncIntent(){
+  var r = M.sel; if (!r) return;
+  var ok = intentOf(r).length >= 8;
+  $('#mpMain').disabled = $('#mpAlt').disabled = M.busy || !ok;
+  $('#mpIntentNote').textContent = ok ? 'Your intent will be credited in the pattern alongside the artist.' : 'Write a sentence of intent to start the tool. Choosing the work and the reason is your part of the art.';
+}
+$('#mpIntent').addEventListener('input', function(){ if (M.sel){ M.intents[M.sel.id] = this.value; syncIntent(); } });
+
+function renderRendition(){
+  var mm = modeMeta[mode] || {}, els = document.querySelectorAll('.rendition');
+  var html = '';
+  if (mode !== 'museum' && mm.credit){
+    var R = (REND && REND.credit === mm.credit && REND.mode === mode) ? REND : null;
+    html = '<h3>Your rendition</h3><div class="rhead">' + (R ? '<img alt="" src="' + esc(imgUrl(R.rec, 160)) + '">' : '') +
+      '<div><div class="rtitle">' + esc(R ? (R.rec.title || 'Untitled') : projectName) + '</div><p class="note" style="margin:2px 0 0">Based on ' + esc(mm.credit) + '</p></div></div>';
+    if (mm.intent) html += '<blockquote>“' + esc(mm.intent) + '”</blockquote>';
+    if (R){
+      html += '<div class="cols"><div><h4>What the tool did</h4><ol style="margin:0;padding-left:18px;font-size:13px">' + R.steps.map(function(t){ return '<li>' + esc(t) + '</li>'; }).join('') + '</ol></div>' +
+        '<div><h4>What you decided</h4><ul>' + R.decisions.map(function(t){ return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div></div>';
+    }
+    html += '<p class="note">The tool did the calculating. It did not choose the work, the reason or the form. You did.</p>';
+  }
+  els.forEach(function(el){ el.innerHTML = html; });
+  var rb = $('#btnModeResult'); rb.disabled = !REND; rb.title = REND ? 'Back to your rendition of “' + shortTitle(REND.rec) + '”' : 'Re-stitch an artwork first';
+  rb.setAttribute('aria-pressed', mode !== 'museum');
+}
+$('#btnModeResult').onclick = function(){ if (!REND || mode === REND.mode) return; setMode(REND.mode); renderRendition(); };
+
 function loadMuseumImage(r, w){
   return new Promise(function(res, rej){
     var im = new Image(), triedProxy = false;
@@ -2353,26 +2466,40 @@ function museumConvert(kind){
   var r = M.sel; if (!r || M.busy) return;
   M.busy = true; museumPreview(); $('#mpNote').textContent = 'Fetching the image…';
   loadMuseumImage(r, kind === 'tap' ? 600 : 480).then(function(c){
-    var credit = creditFor(r);
+    var credit = creditFor(r), intent = intentOf(r), rec = isFlat(r) ? 'tap' : 'obj';
+    var decisions = ['The work: “' + shortTitle(r) + '” by ' + artistOf(r) + '.', 'The reason: your intent, quoted above.',
+      'The form: ' + (kind === 'tap' ? 'a tapestry' : 'a 3D piece') + (kind === rec ? ', as the tool suggested.' : ', overriding the tool’s suggestion.'),
+      'Everything you change from here: ' + (kind === 'tap' ? 'size, number of colours, dithering and individual stitches.' : 'size, smoothing, colours and whether the top is closed.')];
     if (kind === 'tap'){
       setMode('tapestry', true);
       TAP.cols = 90; TAP.k = 8; TAP.dither = false;
-      projectName = shortTitle(r); modeMeta.tapestry.credit = credit; savedId = null; modeMeta.tapestry.savedId = null; $('#tname').value = projectName;
+      projectName = shortTitle(r); modeMeta.tapestry.credit = credit; modeMeta.tapestry.intent = intent; savedId = null; modeMeta.tapestry.savedId = null; $('#tname').value = projectName;
       setSource(c, '“' + shortTitle(r) + '”');
+      REND = { rec: r, mode: 'tapestry', credit: credit, decisions: decisions, steps: [
+        'Fetched the museum’s photograph of the work.',
+        'Shrank it to a grid ' + TAP.cols + ' stitches wide and ' + TAP.rows + ' rows tall, one cell per stitch.',
+        'Grouped its colours into ' + TAP.palette.length + ' yarn colours with k-means clustering, an unsupervised machine-learning method.',
+        'Wrote a row-by-row tapestry crochet pattern from that grid.'] };
     } else {
-      var opt = { smooth: 2, k: 3 }, tr = traceObject(c, opt);
+      var opt = { smooth: 3, k: 4 }, tr = traceObject(c, opt);
       var D, H, asp = clamp(tr.aspect, .25, 4);
-      if (asp >= 1){ H = 10; D = 10 / asp; } else { D = 10; H = 10 * asp; }
+      if (asp >= 1){ H = 16; D = 16 / asp; } else { D = 16; H = 16 * asp; }
       D = clamp(Math.round(D * 2) / 2, 1.5, 30); H = clamp(Math.round(H * 2) / 2, 1.5, 40);
       var p = mkPart({ name: shortTitle(r), shape: 'lathe', D: D, H: H, x: 0, y: H / 2, z: 0, latheW: tr.widths, rowCols: tr.rowCols, pal: tr.pal, closedTop: tr.closedTop, color: tr.pal[0] });
       setMode('shapes', true);
       startProject([p], shortTitle(r));
       latheSrc[p.id] = { canvas: c, opts: opt, preview: tr.preview };
-      modeMeta.shapes.credit = credit;
+      modeMeta.shapes.credit = credit; modeMeta.shapes.intent = intent;
+      REND = { rec: r, mode: 'shapes', credit: credit, decisions: decisions, steps: [
+        'Fetched the museum’s photograph of the object.',
+        tr.ok ? 'Separated the object from its background by comparing every pixel with the colours along the photo’s edges.' : 'Could not separate the object from its background, so it used a simple rounded form instead.',
+        'Found the object’s central axis and measured its silhouette at ' + LN + ' heights, ignoring one-sided parts such as handles and spouts.',
+        'Turned the silhouette into rounds of crochet, adding and removing stitches so each round follows the outline.',
+        'Grouped the object’s colours into ' + tr.pal.length + ' yarns with k-means clustering, and gave each band of height its main colour.'] };
       renderEditor(); schedule();
       if (!tr.ok) setTimeout(function(){ $('#mStatus').textContent = 'The outline could not be found automatically, so a simple round shape was used.'; }, 0);
     }
-    M.busy = false; museumPreview(); $('#mpNote').textContent = '';
+    M.busy = false; museumPreview(); $('#mpNote').textContent = ''; renderRendition();
   }).catch(function(){
     M.busy = false; museumPreview(); $('#mpNote').textContent = 'That image could not be loaded. Please try another artwork.';
   });
@@ -2408,7 +2535,7 @@ function loop(t){
 }
 
 $('#speed').value = 46; S.speed = speedFromSlider(46); $('#oSpeed').textContent = S.speed + ' sts/sec';
-syncSettings(); resize(); tapResizeCanvas(); syncTapControls(); tapPaletteUI(); newProject(); requestAnimationFrame(loop);
+syncSettings(); resize(); tapResizeCanvas(); syncTapControls(); tapPaletteUI(); newProject(); setMode('museum'); requestAnimationFrame(loop);
 })();
 </script>
 </body>
