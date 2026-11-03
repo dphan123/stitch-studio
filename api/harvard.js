@@ -29,6 +29,7 @@ module.exports = async function handler(req, res) {
     if (!r.ok && !q.q) r = await call(false);
     if (!r.ok) return res.status(502).json({ error: 'upstream_' + r.status });
     const data = await r.json();
+    if (data && data.info) { delete data.info.next; delete data.info.prev; } // these links contain the API key
     res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=3600');
     return res.status(200).json(data);
   } catch (e) {
