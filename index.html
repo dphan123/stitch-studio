@@ -2110,7 +2110,9 @@ var LN = 80;
 
 function isFlat(r){ return FLAT.indexOf(r.classification) >= 0; }
 function artistOf(r){ var p = r.people && r.people[0]; return p && p.name ? p.name : 'Unknown artist'; }
-function imgUrl(r, w){ return '/api/image?w=' + w + '&u=' + encodeURIComponent(r.primaryimageurl); }
+// Harvard's image server allows cross-origin loads, so images come straight from it (sized by width/height).
+function imgUrl(r, w){ var u = r.primaryimageurl; return u + (u.indexOf('?') < 0 ? '?' : '&') + 'width=' + w + '&height=' + w; }
+function proxyUrl(r, w){ return '/api/image?w=' + w + '&u=' + encodeURIComponent(r.primaryimageurl); }
 function shortTitle(r){ var t = r.title || 'Untitled'; return t.length > 40 ? t.slice(0, 38) + '…' : t; }
 function creditFor(r){ return '“' + (r.title || 'Untitled') + '” by ' + artistOf(r) + (r.dated ? ' (' + r.dated + ')' : '') + ', Harvard Art Museums' + (r.url ? ', ' + r.url : ''); }
 
@@ -2332,12 +2334,18 @@ function museumPreview(){
 }
 function loadMuseumImage(r, w){
   return new Promise(function(res, rej){
-    var im = new Image();
+    var im = new Image(), triedProxy = false;
+    im.crossOrigin = 'anonymous';
     im.onload = function(){
-      var sc = Math.min(1, w / Math.max(im.width, im.height)), c = mkCanvas(Math.max(1, Math.round(im.width * sc)), Math.max(1, Math.round(im.height * sc)));
-      c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); res(c);
+      try {
+        var sc = Math.min(1, w / Math.max(im.width, im.height)), c = mkCanvas(Math.max(1, Math.round(im.width * sc)), Math.max(1, Math.round(im.height * sc)));
+        var x = c.getContext('2d'); x.drawImage(im, 0, 0, c.width, c.height); x.getImageData(0, 0, 1, 1); res(c);
+      } catch (e) { im.onerror(); }
     };
-    im.onerror = function(){ rej(new Error('image')); };
+    im.onerror = function(){
+      if (triedProxy) return rej(new Error('image'));
+      triedProxy = true; im.src = proxyUrl(r, w);
+    };
     im.src = imgUrl(r, w);
   });
 }
