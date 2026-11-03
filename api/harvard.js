@@ -1,6 +1,6 @@
 // Vercel serverless function: searches the Harvard Art Museums collection.
 // The API key stays on the server as the HARVARD_API_KEY environment variable.
-const BASE = 'https://api.harvardartmuseums.com/object';
+const BASE = 'https://api.harvardartmuseums.org/object';
 const FIELDS = 'id,title,people,dated,classification,primaryimageurl,url,objectnumber,medium,dimensions,culture,division,imagecount';
 
 module.exports = async function handler(req, res) {
